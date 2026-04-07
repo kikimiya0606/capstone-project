@@ -100,3 +100,6 @@
 ### ✔ 데이터 리포트
 - 월간 감정 데이터 요약  
 - 키워드 기반 가족 리포트 생성  
+
+<img width="1024" height="1024" alt="캡스톤 이미지 최종" src="https://github.com/user-attachments/assets/a79b022b-14cb-44c8-9d3c-c0407cb937f3" />
+
