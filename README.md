@@ -101,5 +101,4 @@
 - 월간 감정 데이터 요약  
 - 키워드 기반 가족 리포트 생성  
 
-<img width="1024" height="1024" alt="캡스톤 이미지 최종" src="https://github.com/user-attachments/assets/a79b022b-14cb-44c8-9d3c-c0407cb937f3" />
-
+<img width="1254" height="1254" alt="캡스톤 팀플 깃허브 사진(수정본)" src="https://github.com/user-attachments/assets/fb953a6f-ea87-471d-91be-6ab2e36a6fba" />
