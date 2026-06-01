@@ -113,7 +113,7 @@
 | 07 | **정원 성장 (게임)** | 소통 활동 참여도에 따른 경험치 · 캐릭터 레벨업 · 꾸미기 해금 |
 
 **타깃 사용자:**
-- 👨‍👩‍👧 **핵가족** — 30~50대 부모 + 10~20대 자녀 (바쁜 일상으로 대화가 줄어든 가족)
+- 👨‍👩‍👧 **핵가족** — 부모 + 자녀 (바쁜 일상으로 대화가 줄어든 가족)
 - 🏠 **조부모 포함 대가족** — 지리적으로 떨어진 세대 간 소통이 필요한 가족
 - 🧑‍💼 **1인 가구 청년** — 독립 후 가족과의 연락이 줄어든 20~30대
 
@@ -326,60 +326,13 @@ GARDEN_STATUS (1) ──── (N) TIMECAPSULES
 
 | 이름 | 역할 | 주요 담당 업무 |
 |:---:|:---:|:---|
-| 👑 **권유진** | PM / Full-Stack | 프로젝트 기획 및 서비스 전략 수립, 프론트엔드(Flutter)·백엔드(AI 통합) 시스템 설계 및 개발 총괄, 개발 일정·리소스 관리 및 팀 협업 조율, 서비스 품질 관리 및 기술 의사결정 |
-| 🤖 **강민서** | Backend / AI | AI Hub 기반 감정 분석 모델 학습 및 연동, Hugging Face 모델을 활용한 게이미피케이션 기능 개발, 사용자 입력 데이터 실시간 처리 및 감정 기반 알림/팝업 시스템 구현, 서버 아키텍처 설계·API 제공·성능 최적화 및 안정성 관리 |
-| ⚡ **차은비** | Backend / AI | AI Hub 기반 감정 분석 모델 학습 및 연동, Hugging Face 모델을 활용한 게이미피케이션 기능 개발, 사용자 입력 데이터 실시간 처리 및 감정 기반 알림/팝업 시스템 구현, 서버 아키텍처 설계·API 제공·성능 최적화 및 안정성 관리 |
-| 📱 **정윤도** | Frontend | Figma를 활용한 UI/UX 설계 및 프로토타입 제작, Flutter 기반 반응형 웹·모바일 화면 개발, 감정 분석 결과 및 게이미피케이션 요소 시각화 구현, 사용자 피드백 기반 UI 개선 및 디자인 시스템 유지 |
-| 🎨 **김란아** | Frontend | Figma를 활용한 UI/UX 설계 및 프로토타입 제작, Flutter 기반 반응형 웹·모바일 화면 개발, 감정 분석 결과 및 게이미피케이션 요소 시각화 구현, 사용자 피드백 기반 UI 개선 및 디자인 시스템 유지 |
+| 👑 권유진 | PM / Full-Stack | 프로젝트 기획 및 서비스 전략 수립, 프론트엔드(Flutter)·백엔드(AI 통합) 시스템 설계 및 개발 총괄, 개발 일정·리소스 관리 및 팀 협업 조율, 서비스 품질 관리 및 기술 의사결정 |
+| 🤖 강민서 | Backend / AI | AI Hub 기반 감정 분석 모델 학습 및 연동, Hugging Face 모델을 활용한 게이미피케이션 기능 개발, 사용자 입력 데이터 실시간 처리 및 감정 기반 알림/팝업 시스템 구현, 서버 아키텍처 설계·API 제공·성능 최적화 및 안정성 관리 |
+| ⚡ 차은비 | Backend / AI | AI Hub 기반 감정 분석 모델 학습 및 연동, Hugging Face 모델을 활용한 게이미피케이션 기능 개발, 사용자 입력 데이터 실시간 처리 및 감정 기반 알림/팝업 시스템 구현, 서버 아키텍처 설계·API 제공·성능 최적화 및 안정성 관리 |
+| 📱 정윤도 | Frontend | Figma를 활용한 UI/UX 설계 및 프로토타입 제작, Flutter 기반 반응형 웹·모바일 화면 개발, 감정 분석 결과 및 게이미피케이션 요소 시각화 구현, 사용자 피드백 기반 UI 개선 및 디자인 시스템 유지 |
+| 🎨 김란아 | Frontend | Figma를 활용한 UI/UX 설계 및 프로토타입 제작, Flutter 기반 반응형 웹·모바일 화면 개발, 감정 분석 결과 및 게이미피케이션 요소 시각화 구현, 사용자 피드백 기반 UI 개선 및 디자인 시스템 유지 |
 
 </div>
-
----
-
-## 🚀 시작하기
-
-### 사전 요구사항
-
-```bash
-Flutter SDK >= 3.x
-Dart >= 3.x
-Node.js >= 18.x
-Python >= 3.10
-Firebase CLI
-Docker (AI 추론 서버용)
-```
-
-### 설치 및 실행
-
-```bash
-# 1. 레포지토리 클론
-git clone https://github.com/kikimiya0606/capstone-project.git
-cd capstone-project
-
-# 2. Flutter 앱 의존성 설치
-cd frontend && flutter pub get
-
-# 3. 백엔드 의존성 설치
-cd ../backend && npm install
-
-# 4. Python AI 서버 의존성 설치
-cd ../ai-server && pip install -r requirements.txt
-
-# 5. Flutter 앱 실행
-cd ../frontend && flutter run
-```
-
-### 환경 변수 설정
-
-```bash
-# 프로젝트 루트에 .env 파일 생성 후 아래 항목 설정
-CLAUDE_API_KEY=your_claude_api_key
-OPENAI_API_KEY=your_openai_api_key        # DALL·E 3 이미지 생성용
-FIREBASE_PROJECT_ID=your_firebase_project_id
-KOBERT_MODEL_PATH=your_model_path
-```
-
-> ⚠️ 모든 API 키는 환경변수로 관리하며, Firebase Security Rules를 통해 접근 제어 및 보안을 유지합니다.
 
 ---
 
