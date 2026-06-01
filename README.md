@@ -45,7 +45,7 @@
 
 | 📄 기획서 | 🏗️ 시스템 아키텍처 | 🗄️ DB 설계 | 🚀 시작하기 | 👥 팀 소개 |
 |:---:|:---:|:---:|:---:|:---:|
-| [바로가기](팀%20프로젝트%20제안서/4조_가족소통플랫폼_팀프로젝트기획서.pdf) | [바로가기](#-시스템-아키텍처) | [바로가기](#데이터베이스-설계) | [바로가기](#-시작하기) | [바로가기](#-팀-구성) |
+| [바로가기](팀%20프로젝트%20제안서/4조_가족소통플랫폼_팀프로젝트기획서.pdf) | [바로가기](#시스템-아키텍처) | [바로가기](#데이터베이스-설계) | [바로가기](#시작하기) | [바로가기](#팀-구성) |
 
 </div>
 
@@ -205,6 +205,63 @@ GARDEN_STATUS (1) ──── (N) TIMECAPSULES
 사용자 입력 → 감정 기록 저장 → AI 감정 분석 → 공감 메시지 생성
     → 가족 공유 → 성장 포인트 반영 → 타임캡슐 저장
 ```
+
+---
+
+## 🚀 시작하기
+
+### 사전 요구사항
+
+- Flutter SDK `3.x` 이상
+- Node.js `18.x` 이상
+- Python `3.10` 이상
+- Firebase CLI (`npm install -g firebase-tools`)
+- Anthropic API 키 · OpenAI API 키
+
+### 설치 및 실행
+
+**1. 레포지토리 클론**
+
+```bash
+git clone https://github.com/kikimiya0606/capstone-project.git
+cd capstone-project
+```
+
+**2. Flutter 앱 실행**
+
+```bash
+cd frontend
+flutter pub get
+flutter run
+```
+
+**3. Node.js 백엔드 실행**
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+**4. AI 서버 실행 (KoBERT)**
+
+```bash
+cd ai-server
+pip install -r requirements.txt
+uvicorn api.main:app --reload --port 8000
+```
+
+**5. 환경 변수 설정**
+
+`backend/.env` 파일 생성:
+
+```env
+ANTHROPIC_API_KEY=your_claude_api_key
+OPENAI_API_KEY=your_openai_api_key
+FIREBASE_PROJECT_ID=your_firebase_project_id
+```
+
+`frontend/lib/config.dart`에 Firebase 설정값 입력 (Firebase 콘솔 → 프로젝트 설정에서 확인)
 
 ---
 
