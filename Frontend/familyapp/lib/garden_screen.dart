@@ -4,6 +4,9 @@ import 'question_list_screen.dart';
 import 'calendar_screen.dart';
 import 'mypage_screen.dart';
 import 'garden_state.dart';
+import 'features/dog_room/controllers/dog_controller.dart';
+import 'features/dog_room/screens/dog_room_screen.dart';
+import 'features/dog_room/services/dog_save_service.dart';
 
 class GardenScreen extends StatefulWidget {
   const GardenScreen({super.key});
@@ -157,6 +160,21 @@ class _GardenScreenState extends State<GardenScreen>
                   ),
                   Row(
                     children: [
+                      TextButton.icon(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => DogRoomScreen(
+                              controller: DogController(
+                                SessionDogSaveService.instance,
+                              ),
+                            ),
+                          ),
+                        ),
+                        icon: const Icon(Icons.pets, size: 18),
+                        label: const Text('강아지 방'),
+                      ),
+                      const SizedBox(width: 8),
                       const Text('🍪', style: TextStyle(fontSize: 18)),
                       const SizedBox(width: 4),
                       // 코인 숫자가 바뀔 때 살짝 튀는 느낌 추가

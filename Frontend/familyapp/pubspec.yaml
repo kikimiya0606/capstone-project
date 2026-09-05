@@ -24,6 +24,9 @@ flutter:
   assets:
     - assets/fonts/
     - assets/images/
+    - assets/dog_room/dog/
+    - assets/dog_room/room/
+    - assets/dog_room/furniture/
 
   fonts:
     - family: PalaceScript
