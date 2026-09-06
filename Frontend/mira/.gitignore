@@ -1,3 +1,7 @@
+# Keep Flutter source visible despite the repository's Python lib/ rule.
+!lib/
+!lib/**
+
 # Miscellaneous
 !lib/
 !lib/**

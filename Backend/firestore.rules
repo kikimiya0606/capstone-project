@@ -1,0 +1,67 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isFamilyMember(familyId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/families/$(familyId)) &&
+        request.auth.uid in get(/databases/$(database)/documents/families/$(familyId)).data.members;
+    }
+
+    match /users/{userId} {
+      // 이름/역할/사진은 가족 구성원끼리 공유 전제라 signedIn이면 read 허용.
+      // 생일 등 더 민감한 필드가 늘어나면 public/private 문서 분리 고려.
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == userId;
+
+      match /settings/{settingsId} {
+        allow read, write: if signedIn() && request.auth.uid == userId;
+      }
+
+      match /notifications/{notificationId} {
+        allow read, update: if signedIn() && request.auth.uid == userId;
+        allow create, delete: if false; // Cloud Functions에서만 생성
+      }
+    }
+
+    match /families/{familyId} {
+      allow read: if isFamilyMember(familyId);
+      allow write: if false; // 생성/가입은 createFamily·joinFamily 함수에서만
+
+      match /events/{eventId} {
+        allow read, create, update, delete: if isFamilyMember(familyId);
+      }
+
+      match /moods/{moodId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId) && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if false;
+      }
+
+      match /dailyQuestions/{questionId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false; // 스케줄 Cloud Function에서만 생성
+
+        match /answers/{answerUserId} {
+          allow read: if isFamilyMember(familyId);
+          allow create, update: if isFamilyMember(familyId) && request.auth.uid == answerUserId;
+          allow delete: if false;
+        }
+      }
+
+      match /garden/{gardenDocId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false; // Cloud Functions 트랜잭션에서만 갱신
+      }
+    }
+
+    match /holidays/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

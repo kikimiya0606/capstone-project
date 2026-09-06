@@ -1,3 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,10 +9,17 @@ import 'design/mira_icons.dart';
 import 'dog_room/controllers/dog_controller.dart';
 import 'dog_room/services/dog_save_service.dart';
 import 'dog_room/screens/dog_room_screen.dart';
+import 'firebase_options.dart';
 import 'memories/memory_page.dart';
 import 'privacy/privacy_screen.dart';
+import 'services/auth_service.dart';
+import 'services/family_service.dart';
 
-void main() => runApp(const MiraApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const MiraApp());
+}
 const ink = Color(0xFF263E34),
     violet = Color(0xFF315E50),
     cream = Color(0xFFF7F8F3);
@@ -127,12 +138,20 @@ class _AppFlowState extends State<AppFlow> {
     } catch (_) {
       /* Show the notice if storage is unavailable. */
     }
+    if (record?.startsWith('$privacyVersion|') != true) {
+      if (mounted) setState(() => stage = Stage.privacy);
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (mounted) setState(() => stage = Stage.auth);
+      return;
+    }
+
+    final familyId = await FamilyService.instance.fetchMyFamilyId(user.uid);
     if (mounted) {
-      setState(
-        () => stage = record?.startsWith('$privacyVersion|') == true
-            ? Stage.auth
-            : Stage.privacy,
-      );
+      setState(() => stage = familyId == null ? Stage.profile : Stage.app);
     }
   }
 
@@ -142,9 +161,7 @@ class _AppFlowState extends State<AppFlow> {
     Stage.privacy => PrivacyScreen(
       onDone: () => setState(() => stage = Stage.auth),
     ),
-    Stage.auth => AuthScreen(
-      onDone: () => setState(() => stage = Stage.profile),
-    ),
+    Stage.auth => AuthScreen(onDone: _start),
     Stage.profile => ProfileSetup(
       onDone: () => setState(() => stage = Stage.pet),
     ),
@@ -334,6 +351,56 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   bool signup = false;
+  bool _submitting = false;
+  String? _errorText;
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _passwordConfirmController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _passwordConfirmController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSubmit() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorText = '이메일과 비밀번호를 입력해주세요');
+      return;
+    }
+    if (signup && password != _passwordConfirmController.text) {
+      setState(() => _errorText = '비밀번호가 일치하지 않아요');
+      return;
+    }
+
+    setState(() {
+      _submitting = true;
+      _errorText = null;
+    });
+    try {
+      if (signup) {
+        await AuthService.instance.signUp(
+          email: email,
+          password: password,
+          name: _nameController.text.trim(),
+        );
+      } else {
+        await AuthService.instance.signIn(email: email, password: password);
+      }
+      widget.onDone();
+    } on FirebaseAuthException catch (e) {
+      setState(() => _errorText = AuthService.instance.messageFor(e));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
@@ -366,51 +433,62 @@ class _AuthScreenState extends State<AuthScreen> {
               signup ? '가족 프로필을 설정하고 둘러보세요.' : '우리 가족의 오늘을 확인해 보세요.',
               style: const TextStyle(color: Colors.black54),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              '현재는 체험 화면이에요. 실제 비밀번호를 입력하지 않아도 시작할 수 있어요.',
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.5,
-                color: Color(0xFF68766D),
-              ),
-            ),
             const SizedBox(height: 24),
             if (signup) ...[
-              const TextField(decoration: InputDecoration(labelText: '이름')),
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: '이름'),
+              ),
               const SizedBox(height: 12),
             ],
-            const TextField(
-              decoration: InputDecoration(
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
                 labelText: '이메일',
                 prefixIcon: Icon(CupertinoIcons.envelope),
               ),
             ),
             const SizedBox(height: 12),
-            const TextField(
+            TextField(
+              controller: _passwordController,
               obscureText: true,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: '비밀번호',
                 prefixIcon: Icon(CupertinoIcons.lock),
               ),
             ),
             if (signup) ...[
               const SizedBox(height: 12),
-              const TextField(
+              TextField(
+                controller: _passwordConfirmController,
                 obscureText: true,
-                decoration: InputDecoration(labelText: '비밀번호 확인'),
+                decoration: const InputDecoration(labelText: '비밀번호 확인'),
               ),
+            ],
+            if (_errorText != null) ...[
+              const SizedBox(height: 12),
+              Text(_errorText!, style: const TextStyle(color: Colors.red)),
             ],
             const SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: widget.onDone,
+                onPressed: _submitting ? null : _handleSubmit,
                 style: FilledButton.styleFrom(
                   backgroundColor: ink,
                   padding: const EdgeInsets.all(18),
                 ),
-                child: Text(signup ? '프로필 만들기 · 체험' : '로그인 · 체험'),
+                child: _submitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(signup ? '프로필 만들기' : '로그인'),
               ),
             ),
             const SizedBox(height: 12),
@@ -482,6 +560,47 @@ class ProfileSetup extends StatefulWidget {
 
 class _ProfileSetupState extends State<ProfileSetup> {
   String role = '딸';
+  bool _submitting = false;
+  String? _errorText;
+  final _nameController = TextEditingController();
+  final _inviteCodeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _inviteCodeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSubmit() async {
+    setState(() {
+      _submitting = true;
+      _errorText = null;
+    });
+    try {
+      final name = _nameController.text.trim();
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (name.isNotEmpty && uid != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .set({'name': name}, SetOptions(merge: true));
+      }
+
+      final inviteCode = _inviteCodeController.text.trim();
+      if (inviteCode.isEmpty) {
+        await FamilyService.instance.createFamily(role);
+      } else {
+        await FamilyService.instance.joinFamily(inviteCode, role);
+      }
+      widget.onDone();
+    } on FirebaseFunctionsException catch (e) {
+      setState(() => _errorText = FamilyService.instance.messageFor(e));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => SetupFrame(
     step: '01 / 02',
@@ -491,7 +610,7 @@ class _ProfileSetupState extends State<ProfileSetup> {
       children: [
         Wrap(
           spacing: 8,
-          children: ['아빠', '엄마', '아들', '딸']
+          children: familyRoles
               .map(
                 (e) => ChoiceChip(
                   avatar: Text(
@@ -505,8 +624,9 @@ class _ProfileSetupState extends State<ProfileSetup> {
               .toList(),
         ),
         const SizedBox(height: 20),
-        const TextField(
-          decoration: InputDecoration(labelText: '이름', hintText: '권유진'),
+        TextField(
+          controller: _nameController,
+          decoration: const InputDecoration(labelText: '이름', hintText: '권유진'),
         ),
         const SizedBox(height: 12),
         const TextField(
@@ -518,19 +638,31 @@ class _ProfileSetupState extends State<ProfileSetup> {
           ),
         ),
         const SizedBox(height: 12),
-        const TextField(
-          decoration: InputDecoration(
+        TextField(
+          controller: _inviteCodeController,
+          textCapitalization: TextCapitalization.characters,
+          decoration: const InputDecoration(
             labelText: '가족 초대 코드',
-            hintText: '나중에 입력해도 괜찮아요',
+            hintText: '처음 만드는 가족이면 비워두세요',
           ),
         ),
+        if (_errorText != null) ...[
+          const SizedBox(height: 12),
+          Text(_errorText!, style: const TextStyle(color: Colors.red)),
+        ],
         const SizedBox(height: 28),
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: widget.onDone,
+            onPressed: _submitting ? null : _handleSubmit,
             style: FilledButton.styleFrom(padding: const EdgeInsets.all(18)),
-            child: const Text('반려견 설정으로'),
+            child: _submitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('반려견 설정으로'),
           ),
         ),
       ],
