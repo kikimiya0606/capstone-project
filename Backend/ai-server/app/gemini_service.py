@@ -1,4 +1,5 @@
 from google import genai
+from google.genai import types
 
 from .config import get_settings
 
@@ -72,3 +73,27 @@ AI 감정 분석 결과:
 - 상담사 말투 금지
 - 이모지 사용 금지"""
     return _ask(prompt)
+
+
+def analyze_pet_photos(images: list[bytes]) -> dict[str, str]:
+    settings = get_settings()
+    prompt = """강아지 사진을 보고 아래 형식으로만 한국어로 답해줘. 다른 설명은 하지 마.
+
+품종: (사진 속 강아지와 가장 비슷한 품종. 확실치 않으면 가장 비슷한 특징으로 추정)
+색상: (털 색상과 무늬 특징을 한 줄로)"""
+    contents = [
+        prompt,
+        *[types.Part.from_bytes(data=image, mime_type="image/jpeg") for image in images],
+    ]
+    response = get_client().models.generate_content(model=settings.gemini_model, contents=contents)
+    text = response.text.strip()
+
+    breed = ""
+    color = ""
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("품종:"):
+            breed = line.removeprefix("품종:").strip()
+        elif line.startswith("색상:"):
+            color = line.removeprefix("색상:").strip()
+    return {"breed": breed or "알 수 없음", "color_description": color or "알 수 없음"}

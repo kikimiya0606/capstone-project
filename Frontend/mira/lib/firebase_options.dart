@@ -5,9 +5,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'Web 앱이 아직 Firebase 콘솔에 등록되지 않았습니다. Web 앱 등록 후 이 파일에 web 옵션을 추가하세요.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.iOS:
@@ -30,5 +28,15 @@ class DefaultFirebaseOptions {
     projectId: 'mood-12672',
     storageBucket: 'mood-12672.firebasestorage.app',
     iosBundleId: 'com.a1hajo.mira',
+  );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyCJ9uCa_29meCHl9q1vC_O4tMzz2o301Xw',
+    appId: '1:564336576115:web:ad0a7591d020d6469d4c06',
+    messagingSenderId: '564336576115',
+    projectId: 'mood-12672',
+    authDomain: 'mood-12672.firebaseapp.com',
+    storageBucket: 'mood-12672.firebasestorage.app',
+    measurementId: 'G-NKD9PSKW5R',
   );
 }

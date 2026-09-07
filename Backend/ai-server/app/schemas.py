@@ -16,3 +16,8 @@ class MoodAnalysisResponse(BaseModel):
     self_message: str
     family_message: str
     family_roles: list[str]
+
+
+class PetPhotoAnalysisResponse(BaseModel):
+    breed: str
+    color_description: str

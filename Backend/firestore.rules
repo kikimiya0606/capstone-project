@@ -12,6 +12,10 @@ service cloud.firestore {
         request.auth.uid in get(/databases/$(database)/documents/families/$(familyId)).data.members;
     }
 
+    function familyRoles() {
+      return ['아빠', '엄마', '아들', '딸'];
+    }
+
     match /users/{userId} {
       // 이름/역할/사진은 가족 구성원끼리 공유 전제라 signedIn이면 read 허용.
       // 생일 등 더 민감한 필드가 늘어나면 public/private 문서 분리 고려.
@@ -29,8 +33,27 @@ service cloud.firestore {
     }
 
     match /families/{familyId} {
-      allow read: if isFamilyMember(familyId);
-      allow write: if false; // 생성/가입은 createFamily·joinFamily 함수에서만
+      // 초대 코드 확인/가입 흐름 때문에 문서 id(코드)를 아는 사람이면 단건 조회는 허용.
+      // list/query는 막혀있어서 코드를 모르면 가족을 검색해서 찾을 수는 없음.
+      allow get: if signedIn();
+      allow list: if false;
+      allow delete: if false;
+
+      // 가족 생성: 본인 uid 하나만 members에 담아 새 문서를 만드는 경우만 허용
+      allow create: if signedIn() &&
+        request.resource.data.keys().hasOnly(['members', 'createdAt']) &&
+        request.resource.data.members.keys().hasOnly([request.auth.uid]) &&
+        request.resource.data.members[request.auth.uid] in familyRoles();
+
+      // 가족 참여: 기존 멤버 정보는 그대로 두고 본인 uid만 새로 추가하는 경우만 허용
+      allow update: if signedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
+        request.resource.data.members.diff(resource.data.members).removedKeys().size() == 0 &&
+        request.resource.data.members.diff(resource.data.members).changedKeys().size() == 0 &&
+        request.resource.data.members.diff(resource.data.members).addedKeys().hasOnly([request.auth.uid]) &&
+        request.resource.data.members.size() <= familyRoles().size() &&
+        request.resource.data.members[request.auth.uid] in familyRoles() &&
+        !(request.resource.data.members[request.auth.uid] in resource.data.members.values());
 
       match /events/{eventId} {
         allow read, create, update, delete: if isFamilyMember(familyId);
@@ -56,6 +79,15 @@ service cloud.firestore {
       match /garden/{gardenDocId} {
         allow read: if isFamilyMember(familyId);
         allow write: if false; // Cloud Functions 트랜잭션에서만 갱신
+      }
+
+      match /moments/{momentId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId) && request.resource.data.authorUid == request.auth.uid;
+        // 좋아요 토글만 허용 - 그 외 필드는 생성 이후 수정 불가
+        allow update: if isFamilyMember(familyId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy']);
+        allow delete: if false;
       }
     }
 

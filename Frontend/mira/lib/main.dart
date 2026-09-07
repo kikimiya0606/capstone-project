@@ -1,9 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'design/mira_icons.dart';
 import 'dog_room/controllers/dog_controller.dart';
@@ -12,12 +14,18 @@ import 'dog_room/screens/dog_room_screen.dart';
 import 'firebase_options.dart';
 import 'memories/memory_page.dart';
 import 'privacy/privacy_screen.dart';
+import 'services/ai_server_service.dart';
 import 'services/auth_service.dart';
 import 'services/family_service.dart';
+import 'services/moment_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } catch (_) {
+    // Web/Android는 아직 Firebase 앱 등록 전이라 화면 미리보기용으로 무시.
+  }
   runApp(const MiraApp());
 }
 const ink = Color(0xFF263E34),
@@ -143,15 +151,20 @@ class _AppFlowState extends State<AppFlow> {
       return;
     }
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      if (mounted) setState(() => stage = Stage.auth);
-      return;
-    }
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        if (mounted) setState(() => stage = Stage.auth);
+        return;
+      }
 
-    final familyId = await FamilyService.instance.fetchMyFamilyId(user.uid);
-    if (mounted) {
-      setState(() => stage = familyId == null ? Stage.profile : Stage.app);
+      final familyId = await FamilyService.instance.fetchMyFamilyId(user.uid);
+      if (mounted) {
+        setState(() => stage = familyId == null ? Stage.profile : Stage.app);
+      }
+    } catch (_) {
+      // Firebase 미설정 플랫폼(화면 미리보기 등)에서는 로그인 화면부터 보여준다.
+      if (mounted) setState(() => stage = Stage.auth);
     }
   }
 
@@ -562,14 +575,34 @@ class _ProfileSetupState extends State<ProfileSetup> {
   String role = '딸';
   bool _submitting = false;
   String? _errorText;
+  DateTime? _birthday;
   final _nameController = TextEditingController();
+  final _birthdayController = TextEditingController();
   final _inviteCodeController = TextEditingController();
 
   @override
   void dispose() {
     _nameController.dispose();
+    _birthdayController.dispose();
     _inviteCodeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickBirthday() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthday ?? DateTime(now.year - 20, now.month, now.day),
+      firstDate: DateTime(1900),
+      lastDate: now,
+    );
+    if (picked != null) {
+      setState(() {
+        _birthday = picked;
+        _birthdayController.text =
+            '${picked.year}. ${picked.month.toString().padLeft(2, '0')}. ${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
   }
 
   Future<void> _handleSubmit() async {
@@ -580,11 +613,13 @@ class _ProfileSetupState extends State<ProfileSetup> {
     try {
       final name = _nameController.text.trim();
       final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (name.isNotEmpty && uid != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .set({'name': name}, SetOptions(merge: true));
+      if (uid != null && (name.isNotEmpty || _birthday != null)) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          if (name.isNotEmpty) 'name': name,
+          if (_birthday != null)
+            'birthday':
+                '${_birthday!.year}-${_birthday!.month.toString().padLeft(2, '0')}-${_birthday!.day.toString().padLeft(2, '0')}',
+        }, SetOptions(merge: true));
       }
 
       final inviteCode = _inviteCodeController.text.trim();
@@ -594,8 +629,8 @@ class _ProfileSetupState extends State<ProfileSetup> {
         await FamilyService.instance.joinFamily(inviteCode, role);
       }
       widget.onDone();
-    } on FirebaseFunctionsException catch (e) {
-      setState(() => _errorText = FamilyService.instance.messageFor(e));
+    } on FamilyServiceException catch (e) {
+      setState(() => _errorText = e.message);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -614,7 +649,7 @@ class _ProfileSetupState extends State<ProfileSetup> {
               .map(
                 (e) => ChoiceChip(
                   avatar: Text(
-                    {'아빠': '👨', '엄마': '👩', '아들': '👦', '딸': '👧'}[e]!,
+                    _roleEmoji[e]!,
                   ),
                   label: Text(e),
                   selected: role == e,
@@ -626,14 +661,16 @@ class _ProfileSetupState extends State<ProfileSetup> {
         const SizedBox(height: 20),
         TextField(
           controller: _nameController,
-          decoration: const InputDecoration(labelText: '이름', hintText: '권유진'),
+          decoration: const InputDecoration(labelText: '이름', hintText: '이름을 입력하세요'),
         ),
         const SizedBox(height: 12),
-        const TextField(
+        TextField(
+          controller: _birthdayController,
           readOnly: true,
-          decoration: InputDecoration(
+          onTap: _pickBirthday,
+          decoration: const InputDecoration(
             labelText: '생년월일',
-            hintText: '2002. 03. 14',
+            hintText: '예) 2002. 03. 14',
             suffixIcon: Icon(CupertinoIcons.calendar),
           ),
         ),
@@ -665,6 +702,13 @@ class _ProfileSetupState extends State<ProfileSetup> {
                 : const Text('반려견 설정으로'),
           ),
         ),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton(
+            onPressed: widget.onDone,
+            child: const Text('백엔드 연동 없이 화면만 보기'),
+          ),
+        ),
       ],
     ),
   );
@@ -680,11 +724,58 @@ class PetSetup extends StatefulWidget {
 class _PetSetupState extends State<PetSetup> {
   bool photo = true;
   String personality = '활발함';
+  final _breedController = TextEditingController();
+  final _colorController = TextEditingController();
+  final _picker = ImagePicker();
+  final List<Uint8List> _photoBytes = [];
+  bool _analyzing = false;
+  String? _analysisError;
+
+  @override
+  void dispose() {
+    _breedController.dispose();
+    _colorController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickPhotos() async {
+    final picked = await _picker.pickMultiImage(imageQuality: 80, limit: 5);
+    if (picked.isEmpty) return;
+    final bytesList = await Future.wait(picked.map((file) => file.readAsBytes()));
+    setState(() {
+      _photoBytes
+        ..clear()
+        ..addAll(bytesList);
+      _analysisError = null;
+    });
+  }
+
+  Future<void> _analyzePhotos() async {
+    if (_photoBytes.isEmpty) return;
+    setState(() {
+      _analyzing = true;
+      _analysisError = null;
+    });
+    try {
+      final result = await AiServerService.instance.analyzePetPhotos(_photoBytes);
+      setState(() {
+        _breedController.text = result.breed;
+        _colorController.text = result.colorDescription;
+      });
+    } on AiServerException catch (e) {
+      setState(() => _analysisError = e.message);
+    } catch (_) {
+      setState(() => _analysisError = 'AI 서버에 연결하지 못했어요. ai-server가 실행 중인지 확인해주세요.');
+    } finally {
+      if (mounted) setState(() => _analyzing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => SetupFrame(
-    step: '02 / 02 · 화면 목업',
+    step: '02 / 02',
     title: '우리 가족의 친구를\n소개해 주세요',
-    subtitle: 'AI 생성과 실제 저장은 추후 연동할 예정이에요.',
+    subtitle: '사진을 올리면 AI가 품종과 색상을 분석해줘요.',
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -705,44 +796,109 @@ class _PetSetupState extends State<PetSetup> {
           onSelectionChanged: (v) => setState(() => photo = v.first),
         ),
         const SizedBox(height: 18),
-        if (photo)
-          Container(
-            height: 165,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEDE9F8),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: violet.withValues(alpha: .25)),
+        if (photo) ...[
+          GestureDetector(
+            onTap: _pickPhotos,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEDE9F8),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: violet.withValues(alpha: .25)),
+              ),
+              child: _photoBytes.isEmpty
+                  ? const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(height: 24),
+                        Icon(
+                          CupertinoIcons.photo_on_rectangle,
+                          size: 44,
+                          color: violet,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '강아지 사진 최대 5장',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          '눌러서 사진 선택',
+                          style: TextStyle(color: Colors.black45, fontSize: 12),
+                        ),
+                        SizedBox(height: 24),
+                      ],
+                    )
+                  : Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final bytes in _photoBytes)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Image.memory(
+                              bytes,
+                              width: 72,
+                              height: 72,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        InkWell(
+                          onTap: _pickPhotos,
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: violet.withValues(alpha: .4)),
+                            ),
+                            child: const Icon(CupertinoIcons.pencil, color: violet),
+                          ),
+                        ),
+                      ],
+                    ),
             ),
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  CupertinoIcons.photo_on_rectangle,
-                  size: 44,
-                  color: violet,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '강아지 사진 최대 5장',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                Text(
-                  'AI 외형 생성 목업',
-                  style: TextStyle(color: Colors.black45, fontSize: 12),
-                ),
-              ],
+          ),
+          if (_photoBytes.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _analyzing ? null : _analyzePhotos,
+                icon: _analyzing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(CupertinoIcons.sparkles),
+                label: Text(_analyzing ? '분석 중...' : 'AI로 분석하기'),
+              ),
             ),
-          )
-        else
+          ],
+          if (_analysisError != null) ...[
+            const SizedBox(height: 8),
+            Text(_analysisError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+          ],
+          if (_breedController.text.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const Text('분석 결과', style: TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Text('품종: ${_breedController.text}'),
+            Text('색상: ${_colorController.text}'),
+          ],
+        ] else
           Column(
             children: [
-              const TextField(
-                decoration: InputDecoration(labelText: '견종', hintText: '토이 푸들'),
+              TextField(
+                controller: _breedController,
+                decoration: const InputDecoration(labelText: '견종', hintText: '토이 푸들'),
               ),
               const SizedBox(height: 12),
-              const TextField(
-                decoration: InputDecoration(
+              TextField(
+                controller: _colorController,
+                decoration: const InputDecoration(
                   labelText: '털 색상과 특징',
                   hintText: '크림색 · 곱슬',
                 ),
@@ -1117,8 +1273,9 @@ class FamilyPage extends StatefulWidget {
   State<FamilyPage> createState() => _FamilyPageState();
 }
 
+const _roleEmoji = {'아빠': '👨', '엄마': '👩', '아들': '👦', '딸': '👧'};
+
 class _FamilyPageState extends State<FamilyPage> {
-  int likes = 12;
   @override
   Widget build(BuildContext context) => AppPage(
     title: '가족 이야기',
@@ -1131,24 +1288,13 @@ class _FamilyPageState extends State<FamilyPage> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Section('오늘의 가족 마음', '공개 범위 설정'),
+        const Section('우리 가족', ''),
         const SizedBox(height: 12),
-        DiaryCard(
-          name: '엄마',
-          mood: '조금 지쳤지만 괜찮아요',
-          body: '퇴근길 하늘이 예뻐서 잠깐 멈춰 봤어. 다들 오늘 하루도 고생했어.',
-          likes: likes,
-          onLike: () => setState(() => likes++),
-          comments: 3,
-        ),
-        const SizedBox(height: 14),
-        const DiaryCard(
-          name: '나',
-          mood: '뿌듯해요',
-          body: '미뤄두었던 과제를 끝냈다. 저녁에는 보리랑 산책도 해야지!',
-          likes: 8,
-          comments: 2,
-        ),
+        const _FamilyMembersSection(),
+        const SizedBox(height: 22),
+        const Section('오늘의 가족 마음', ''),
+        const SizedBox(height: 12),
+        const _MomentsSection(),
         const SizedBox(height: 22),
         const Section('가족 상호작용', '최근 7일 +18%'),
         const SizedBox(height: 10),
@@ -1174,49 +1320,198 @@ class _FamilyPageState extends State<FamilyPage> {
       ],
     ),
   );
-  void _write(BuildContext context) => showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (c) => Padding(
-      padding: EdgeInsets.fromLTRB(
-        22,
-        5,
-        22,
-        MediaQuery.viewInsetsOf(c).bottom + 25,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '오늘의 마음 기록',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 15),
-          const TextField(
-            maxLines: 5,
-            decoration: InputDecoration(hintText: '가족과 나누고 싶은 이야기를 적어보세요.'),
-          ),
-          const SizedBox(height: 12),
-          const Wrap(
-            spacing: 8,
-            children: [
-              Chip(label: Text('가족 공개')),
-              Chip(label: Text('댓글 허용')),
-            ],
-          ),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.pop(c),
-              child: const Text('기록하기'),
+
+  Future<void> _write(BuildContext context) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final familyId = await FamilyService.instance.fetchMyFamilyId(uid);
+    if (familyId == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('가족에 먼저 참여해주세요.')),
+        );
+      }
+      return;
+    }
+    final profile = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final authorName = profile.data()?['name'] as String? ?? '이름 없음';
+    final authorRole = profile.data()?['role'] as String? ?? '';
+
+    final moodController = TextEditingController();
+    final bodyController = TextEditingController();
+    if (!context.mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (c) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          22,
+          5,
+          22,
+          MediaQuery.viewInsetsOf(c).bottom + 25,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '오늘의 마음 기록',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
             ),
-          ),
-        ],
+            const SizedBox(height: 15),
+            TextField(
+              controller: moodController,
+              decoration: const InputDecoration(hintText: '오늘 기분을 한 줄로 표현해보세요.'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: bodyController,
+              maxLines: 5,
+              decoration: const InputDecoration(hintText: '가족과 나누고 싶은 이야기를 적어보세요.'),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () async {
+                  final body = bodyController.text.trim();
+                  if (body.isEmpty) return;
+                  await MomentService.instance.addMoment(
+                    familyId: familyId,
+                    authorUid: uid,
+                    authorName: authorName,
+                    authorRole: authorRole,
+                    mood: moodController.text.trim(),
+                    body: body,
+                  );
+                  if (c.mounted) Navigator.pop(c);
+                },
+                child: const Text('기록하기'),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _MomentsSection extends StatelessWidget {
+  const _MomentsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return const Text('로그인 후 가족 이야기를 볼 수 있어요.', style: TextStyle(color: Colors.black54));
+    }
+    return FutureBuilder<String?>(
+      future: FamilyService.instance.fetchMyFamilyId(uid),
+      builder: (context, familyIdSnapshot) {
+        final familyId = familyIdSnapshot.data;
+        if (familyIdSnapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 60,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        }
+        if (familyId == null) {
+          return const Text('아직 가족에 소속되어 있지 않아요.', style: TextStyle(color: Colors.black54));
+        }
+        return StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
+          stream: MomentService.instance.watchMoments(familyId),
+          builder: (context, snapshot) {
+            final docs = snapshot.data ?? const [];
+            if (docs.isEmpty) {
+              return const Text('아직 기록된 가족 이야기가 없어요.', style: TextStyle(color: Colors.black54));
+            }
+            return Column(
+              children: [
+                for (final doc in docs) ...[
+                  Builder(
+                    builder: (context) {
+                      final data = doc.data();
+                      final likedBy = List<String>.from(
+                        data['likedBy'] as List? ?? const [],
+                      );
+                      final isLiked = likedBy.contains(uid);
+                      return DiaryCard(
+                        name: data['authorName'] as String? ?? '이름 없음',
+                        mood: data['mood'] as String? ?? '',
+                        body: data['body'] as String? ?? '',
+                        avatar: _roleEmoji[data['authorRole']] ?? '👤',
+                        likes: likedBy.length,
+                        comments: data['commentCount'] as int? ?? 0,
+                        isLiked: isLiked,
+                        onLike: () => MomentService.instance.toggleLike(
+                          familyId: familyId,
+                          momentId: doc.id,
+                          uid: uid,
+                          currentlyLiked: isLiked,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                ],
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _FamilyMembersSection extends StatelessWidget {
+  const _FamilyMembersSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return const Text('로그인 후 가족 구성원을 볼 수 있어요.', style: TextStyle(color: Colors.black54));
+    }
+    return FutureBuilder<String?>(
+      future: FamilyService.instance.fetchMyFamilyId(uid),
+      builder: (context, familyIdSnapshot) {
+        final familyId = familyIdSnapshot.data;
+        if (familyIdSnapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 40,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        }
+        if (familyId == null) {
+          return const Text('아직 가족에 소속되어 있지 않아요.', style: TextStyle(color: Colors.black54));
+        }
+        return StreamBuilder<List<Map<String, dynamic>>>(
+          stream: FamilyService.instance.watchFamilyMembers(familyId),
+          builder: (context, snapshot) {
+            final members = snapshot.data ?? const [];
+            if (members.isEmpty) {
+              return const Text('아직 참여한 가족 구성원이 없어요.', style: TextStyle(color: Colors.black54));
+            }
+            const emoji = _roleEmoji;
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final member in members)
+                  Chip(
+                    avatar: Text(emoji[member['role']] ?? '👤'),
+                    label: Text(
+                      '${member['name'] ?? '이름 없음'} · ${member['role'] ?? '역할 미설정'}',
+                    ),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 class DiaryCard extends StatelessWidget {
@@ -1226,11 +1521,14 @@ class DiaryCard extends StatelessWidget {
     required this.body,
     required this.likes,
     required this.comments,
+    this.avatar = '👤',
+    this.isLiked = false,
     this.onLike,
     super.key,
   });
-  final String name, mood, body;
+  final String name, mood, body, avatar;
   final int likes, comments;
+  final bool isLiked;
   final VoidCallback? onLike;
   @override
   Widget build(BuildContext context) => Card(
@@ -1241,7 +1539,7 @@ class DiaryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const CircleAvatar(child: Text('👩')),
+              CircleAvatar(child: Text(avatar)),
               const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1265,7 +1563,11 @@ class DiaryCard extends StatelessWidget {
             children: [
               TextButton.icon(
                 onPressed: onLike,
-                icon: const Icon(CupertinoIcons.heart, size: 19),
+                icon: Icon(
+                  isLiked ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+                  size: 19,
+                  color: isLiked ? Colors.redAccent : null,
+                ),
                 label: Text('$likes'),
               ),
               TextButton.icon(
@@ -1357,14 +1659,7 @@ class SettingsPage extends StatelessWidget {
     title: '설정',
     child: Column(
       children: [
-        const Card(
-          child: ListTile(
-            leading: CircleAvatar(child: Text('👧')),
-            title: Text('권유진', style: TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text('우리 가족 · 딸'),
-            trailing: Icon(CupertinoIcons.chevron_right),
-          ),
-        ),
+        _ProfileCard(),
         const SizedBox(height: 14),
         Card(
           child: Column(
@@ -1404,6 +1699,14 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 14),
+        Card(
+          child: ListTile(
+            leading: const Icon(CupertinoIcons.square_arrow_right, color: Colors.red),
+            title: const Text('로그아웃', style: TextStyle(color: Colors.red)),
+            onTap: () => AuthService.instance.signOut(),
+          ),
+        ),
       ],
     ),
   );
@@ -1413,6 +1716,38 @@ class SettingsPage extends StatelessWidget {
     subtitle: Text(sub),
     trailing: const Icon(CupertinoIcons.chevron_right),
   );
+}
+
+class _ProfileCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return const Card(
+        child: ListTile(
+          leading: CircleAvatar(child: Text('👤')),
+          title: Text('로그인 정보 없음'),
+        ),
+      );
+    }
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data();
+        final name = data?['name'] as String? ?? '이름 없음';
+        final role = data?['role'] as String?;
+        const emoji = _roleEmoji;
+        return Card(
+          child: ListTile(
+            leading: CircleAvatar(child: Text(emoji[role] ?? '👤')),
+            title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(role != null ? '우리 가족 · $role' : '역할 미설정'),
+            trailing: const Icon(CupertinoIcons.chevron_right),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class QuestCard extends StatelessWidget {
@@ -1539,9 +1874,21 @@ class CareLine extends StatelessWidget {
   const CareLine(this.who, this.action, {super.key});
   final String who, action;
   @override
-  Widget build(BuildContext context) => ListTile(
-    title: Text(who, style: const TextStyle(fontWeight: FontWeight.w700)),
-    trailing: Text(action),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            who,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(action, overflow: TextOverflow.ellipsis),
+      ],
+    ),
   );
 }
 
@@ -1576,13 +1923,17 @@ class Section extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Text(
-        title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+      Flexible(
+        child: Text(
+          title,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
       ),
       const Spacer(),
       Text(
         tail,
+        overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           fontSize: 11,
           color: violet,
