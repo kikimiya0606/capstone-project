@@ -34,6 +34,10 @@ class CharacterServerService {
       response = await http
           .post(
             uri,
+            // ngrok 무료 플랜은 브라우저발 요청에 API 응답 대신 경고 페이지(HTML)를
+            // 먼저 보여준다 — 이 헤더로 건너뛴다. (curl 등에서는 안 붙어도 되지만
+            // Flutter web처럼 브라우저에서 직접 fetch할 때는 꼭 필요하다.)
+            headers: const {'ngrok-skip-browser-warning': 'true'},
             body: {
               'breed': breed,
               'color': color,
