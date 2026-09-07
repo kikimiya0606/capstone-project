@@ -9,6 +9,8 @@ load_dotenv()
 class Settings:
     def __init__(self) -> None:
         self.emotion_model_path = os.environ.get("EMOTION_MODEL_PATH", "klue/bert-base")
+        # EMOTION_MODEL_PATH가 private Hugging Face Hub repo일 때만 필요.
+        self.hf_token = os.environ.get("HF_TOKEN")
         self.gemini_api_key = os.environ.get("GEMINI_API_KEY")
         self.ollama_base_url = os.environ.get('OLLAMA_BASE_URL', 'http://127.0.0.1:11434').rstrip('/')
         self.ollama_model = os.environ.get('OLLAMA_MODEL', 'qwen3:4b')
