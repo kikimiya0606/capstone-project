@@ -86,34 +86,133 @@ def _get_pipeline():
 # 앱(PetSetup) 화면에서 자유 입력 또는 AI 사진 분석 결과(자유 문장)로 들어오기 때문에
 # 정확히 일치하지 않을 수 있어 _lookup()에서 부분 일치까지 시도한다.
 BREED_MAP = {
+    # 소형견
     "포메라니안": "pomeranian",
-    "골든리트리버": "golden retriever",
-    "시바견": "shiba inu",
-    "푸들": "poodle",
-    "토이푸들": "toy poodle",
-    "웰시코기": "corgi",
     "말티즈": "maltese",
+    "토이푸들": "toy poodle",
+    "미니어처푸들": "miniature poodle",
+    "푸들": "poodle",
     "비숑프리제": "bichon frise",
     "치와와": "chihuahua",
+    "요크셔테리어": "yorkshire terrier",
+    "시츄": "shih tzu",
+    "페키니즈": "pekingese",
+    "파피용": "papillon",
+    "미니어처핀셔": "miniature pinscher",
+    "미니핀": "miniature pinscher",
+    "미니어처슈나우저": "miniature schnauzer",
+    "재패니즈스피츠": "japanese spitz",
+    "스피츠": "japanese spitz",
+    "잭러셀테리어": "jack russell terrier",
+    "이탈리안그레이하운드": "italian greyhound",
+    "미니어처닥스훈트": "miniature dachshund",
     "닥스훈트": "dachshund",
+    # 중형견
+    "웰시코기": "corgi",
+    "코카스파니엘": "cocker spaniel",
+    "비글": "beagle",
+    "프렌치불독": "french bulldog",
+    "퍼그": "pug",
+    "보스턴테리어": "boston terrier",
+    "불독": "english bulldog",
+    "시바견": "shiba inu",
+    # 한국 토종견
     "진돗개": "jindo dog",
+    "삽살개": "sapsaree dog",
+    "풍산개": "pungsan dog",
+    # 대형견/사역견
+    "골든리트리버": "golden retriever",
+    "래브라도리트리버": "labrador retriever",
+    "보더콜리": "border collie",
+    "오스트레일리안셰퍼드": "australian shepherd",
+    "셔틀랜드쉽독": "shetland sheepdog",
+    "저먼셰퍼드": "german shepherd",
+    "셰퍼드": "german shepherd",
+    "시베리안허스키": "siberian husky",
+    "허스키": "siberian husky",
+    "사모예드": "samoyed",
+    "알래스칸말라뮤트": "alaskan malamute",
+    "로트와일러": "rottweiler",
+    "도베르만": "doberman pinscher",
+    "달마시안": "dalmatian",
+    "차우차우": "chow chow",
+    "아키타견": "akita inu",
+    "아키타": "akita inu",
+    "그레이트데인": "great dane",
+    "세인트버나드": "saint bernard",
+    "버니즈마운틴독": "bernese mountain dog",
+    # 믹스견 (품종 특징 없이 일반적인 강아지로 생성)
+    "믹스견": "mixed breed",
+    "믹스": "mixed breed",
+    "잡종": "mixed breed",
 }
 
 COLOR_MAP = {
+    # 흰색 계열
     "흰색": "white",
     "화이트": "white",
+    "하얀": "white",
+    "하양": "white",
+    "새하얀": "white",
+    "우유색": "white",
+    "우윳빛": "white",
+    "백구": "white",  # 진돗개 등에서 흰 털을 부르는 관용 표현
+    # 검정 계열
     "검정": "black",
+    "검은색": "black",
     "블랙": "black",
+    "까만": "black",
+    "까망": "black",
+    "새까만": "black",
+    "흑구": "black",
+    # 갈색 계열
     "갈색": "brown",
     "브라운": "brown",
+    "고동색": "brown",
+    "밤색": "brown",
+    "진갈색": "dark brown",
+    "다크브라운": "dark brown",
+    "초코색": "chocolate brown",
+    "초콜릿색": "chocolate brown",
+    "카라멜색": "caramel brown",
+    # 크림/베이지/아이보리 계열
     "크림": "cream beige",
+    "크림색": "cream beige",
     "베이지": "cream beige",
+    "아이보리": "ivory cream",
+    "옅은 갈색": "light tan",
+    "연갈색": "light tan",
+    "살구색": "apricot",
+    "애프리콧": "apricot",
+    # 회색/은색 계열
     "회색": "gray",
     "그레이": "gray",
+    "잿빛": "gray",
+    "은색": "silver gray",
+    "은회색": "silver gray",
+    "실버": "silver gray",
+    # 황금색/노란 계열
     "황금색": "golden",
+    "골든": "golden",
+    "금색": "golden",
+    "노란": "golden yellow",
+    "노랑": "golden yellow",
+    "황토색": "golden brown",
     "황갈색": "golden brown",
+    # 붉은/탄색 계열 (진돗개·시바견의 "황구" 같은 관용 표현 포함)
+    "빨간": "red",
+    "붉은색": "red",
+    "적갈색": "reddish brown",
+    "탄색": "tan",
+    "황구": "reddish tan",
+    # 두 가지 색 섞임 / 무늬
     "흑백": "black and white",
     "갈색+흰색": "brown and white",
+    "삼색": "tricolor",
+    "트라이컬러": "tricolor",
+    "점박이": "spotted",
+    "얼룩무늬": "spotted",
+    "얼룩": "spotted",
 }
 
 # 앱의 PetSetup 화면에서 실제로 쓰는 성격 칩(활발함/애교쟁이/호기심/차분함)과
@@ -144,13 +243,21 @@ def _lookup(value: str, table: dict, default_key: str) -> str:
     """정확히 일치하면 그대로, 아니면 테이블 키가 value에 포함되는지 부분 일치로 찾는다.
     (AI 사진 분석 결과는 "말티즈로 추정돼요" 같은 완전한 문장일 수 있어서)
     둘 다 실패하면 기본값으로 대체한다 — SD1.5는 한국어 프롬프트를 이해하지 못한다.
+
+    부분 일치는 긴 키부터 검사한다 — 예를 들어 "황갈색"이 "갈색"의 상위 문자열이라
+    "갈색"을 먼저 검사하면 "황갈색"을 입력해도 항상 "갈색"으로만 걸려버린다.
+
+    부분 일치 검사 전에 공백을 모두 제거한다 — "시베리안 허스키"처럼 외래어 견종명은
+    띄어쓰기가 사람마다 달라서, 공백을 그대로 두면 "시베리안허스키" 키가 있어도
+    못 찾는 경우가 많다.
     """
     value = (value or "").strip()
     if value in table:
         return table[value]
-    for key, prompt_value in table.items():
-        if key in value:
-            return prompt_value
+    compact_value = "".join(value.split())
+    for key in sorted(table, key=len, reverse=True):
+        if "".join(key.split()) in compact_value:
+            return table[key]
     return table[default_key]
 
 
@@ -165,8 +272,9 @@ def build_prompt(breed_kr: str, color_kr: str, personality_kr: str) -> tuple[str
     # txt2img로 단독으로 쓰면 결과가 매번 크게 달라진다).
     prompt = (
         f"full body chibi {color} {breed} puppy standing on four legs, "
-        "cute cartoon illustration, simple flat shading, "
-        "big round eyes, blush pink cheeks, smiling open mouth, fluffy fur, "
+        "kawaii mascot illustration, flat vector art, cel shading, clean bold black outline, "
+        "big round glossy black eyes with white sparkle highlight, blush pink cheeks, "
+        "smiling open mouth, soft round chubby body, fluffy fur, "
         f"{personality}, "
         "isolated on plain white background, no border, no frame, no shadow"
     )
@@ -175,6 +283,8 @@ def build_prompt(breed_kr: str, color_kr: str, personality_kr: str) -> tuple[str
         "colorful background, pattern background, sticker border, frame, "
         "cropped, close up, head only, face only, portrait, no body, "
         "3d render, photorealistic, realistic photo, photograph, detailed realistic fur, "
+        "sketch, pencil sketch, rough sketch, watercolor, painterly, gradient shading, "
+        "soft blurry outline, textured brush strokes, "
         "bear, teddy bear, cat, feline, whiskers, "
         "collar, tag, accessories, "
         "humanoid, ground, multiple animals, "

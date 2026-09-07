@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 import 'services/family_activity.dart';
 import 'dog_room/models/pet_personality.dart';
 import 'dog_room/widgets/pet_personality_quiz.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -60,7 +59,6 @@ Future<void> main() async {
       );
       await FirebaseAuth.instance.useAuthEmulator(host, 9099);
       FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
-      FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
     }
   } catch (_) {
     // Web/Android는 아직 Firebase 앱 등록 전이라 화면 미리보기용으로 무시.
@@ -532,7 +530,10 @@ class _AuthScreenState extends State<AuthScreen> {
             if (signup) ...[
               TextField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: '이름'),
+                decoration: const InputDecoration(
+                  labelText: '이름',
+                  prefixIcon: Icon(CupertinoIcons.person),
+                ),
               ),
               const SizedBox(height: 12),
             ],
@@ -558,7 +559,10 @@ class _AuthScreenState extends State<AuthScreen> {
               TextField(
                 controller: _passwordConfirmController,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: '비밀번호 확인'),
+                decoration: const InputDecoration(
+                  labelText: '비밀번호 확인',
+                  prefixIcon: Icon(CupertinoIcons.lock),
+                ),
               ),
             ],
             if (_errorText != null) ...[
@@ -1586,6 +1590,11 @@ class _MoodAlertListener extends StatelessWidget {
     return StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
       stream: NotificationService.instance.watchUnread(uid),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          // Firestore 색인 누락 등으로 쿼리가 실패하면 알림이 조용히 사라지는 대신
+          // 콘솔에 남겨서 원인을 바로 찾을 수 있게 한다.
+          debugPrint('알림을 불러오지 못했어요: ${snapshot.error}');
+        }
         final docs = snapshot.data ?? const [];
         if (docs.isEmpty) return const SizedBox.shrink();
         final first = docs.first;
@@ -1962,6 +1971,7 @@ Future<void> _showCommentsSheet({
   required BuildContext context,
   required String familyId,
   required String momentId,
+  required String? momentAuthorUid,
   required List<QueryDocumentSnapshot<Map<String, dynamic>>> comments,
 }) async {
   final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -2068,15 +2078,24 @@ Future<void> _showCommentsSheet({
                             .collection('users')
                             .doc(uid)
                             .get();
+                        final myRole = profile.data()?['role'] as String? ?? '';
                         await MomentService.instance.addComment(
                           familyId: familyId,
                           momentId: momentId,
                           authorUid: uid,
-                          authorName:
-                              profile.data()?['name'] as String? ?? '이름 없음',
-                          authorRole: profile.data()?['role'] as String? ?? '',
+                          authorName: profile.data()?['name'] as String? ?? '이름 없음',
+                          authorRole: myRole,
                           text: text,
                         );
+                        if (momentAuthorUid != null && momentAuthorUid != uid) {
+                          unawaited(
+                            NotificationService.instance.sendCommentAlert(
+                              toUserId: momentAuthorUid,
+                              fromRole: myRole,
+                              relatedId: momentId,
+                            ),
+                          );
+                        }
                         controller.clear();
                       },
                     ),
@@ -2178,6 +2197,7 @@ class _MomentsSection extends StatelessWidget {
                               context: context,
                               familyId: familyId,
                               momentId: doc.id,
+                              momentAuthorUid: data['authorUid'] as String?,
                               comments: commentDocs,
                             ),
                           );
@@ -2745,15 +2765,11 @@ class NotificationSettingsScreen extends StatefulWidget {
       _NotificationSettingsScreenState();
 }
 
-class _NotificationSettingsScreenState
-    extends State<NotificationSettingsScreen> {
-  static const _careKey = 'notif_care_v1';
-  static const _commentKey = 'notif_comment_v1';
-  static const _scheduleKey = 'notif_schedule_v1';
-
+class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
   bool _care = true;
   bool _comment = true;
   bool _schedule = true;
+  bool _loading = true;
 
   @override
   void initState() {
@@ -2761,54 +2777,67 @@ class _NotificationSettingsScreenState
     _load();
   }
 
+  // 다른 가족 구성원의 클라이언트가 알림을 보내기 전에 이 값을 확인해야 해서
+  // (NotificationService._isEnabled), 기기 로컬 저장소가 아니라 Firestore에 저장한다.
   Future<void> _load() async {
-    final prefs = SharedPreferencesAsync();
-    final care = await prefs.getBool(_careKey);
-    final comment = await prefs.getBool(_commentKey);
-    final schedule = await prefs.getBool(_scheduleKey);
+    final uid = currentUidOrNull();
+    if (uid == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    final doc = await NotificationService.instance.fetchPreferences(uid);
     if (mounted) {
       setState(() {
-        _care = care ?? true;
-        _comment = comment ?? true;
-        _schedule = schedule ?? true;
+        _care = doc['careEnabled'] as bool? ?? true;
+        _comment = doc['commentEnabled'] as bool? ?? true;
+        _schedule = doc['scheduleEnabled'] as bool? ?? true;
+        _loading = false;
       });
     }
+  }
+
+  Future<void> _save(String key, bool value) async {
+    final uid = currentUidOrNull();
+    if (uid == null) return;
+    await NotificationService.instance.setPreference(uid, key, value);
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('알림')),
-    body: ListView(
-      children: [
-        SwitchListTile(
-          title: const Text('돌봄 알림'),
-          subtitle: const Text('가족이 반려동물을 돌봐야 할 때 알려드려요'),
-          value: _care,
-          onChanged: (v) {
-            setState(() => _care = v);
-            SharedPreferencesAsync().setBool(_careKey, v);
-          },
-        ),
-        SwitchListTile(
-          title: const Text('댓글 알림'),
-          subtitle: const Text('가족이 내 기록에 댓글을 남기면 알려드려요'),
-          value: _comment,
-          onChanged: (v) {
-            setState(() => _comment = v);
-            SharedPreferencesAsync().setBool(_commentKey, v);
-          },
-        ),
-        SwitchListTile(
-          title: const Text('일정 알림'),
-          subtitle: const Text('다가오는 가족 일정을 알려드려요'),
-          value: _schedule,
-          onChanged: (v) {
-            setState(() => _schedule = v);
-            SharedPreferencesAsync().setBool(_scheduleKey, v);
-          },
-        ),
-      ],
-    ),
+    body: _loading
+        ? const Center(child: CircularProgressIndicator())
+        : ListView(
+            children: [
+              SwitchListTile(
+                title: const Text('돌봄 알림'),
+                subtitle: const Text('내게 오늘의 돌봄이 배정되거나, 가족이 돌봄을 완료하면 알려드려요'),
+                value: _care,
+                onChanged: (v) {
+                  setState(() => _care = v);
+                  _save('careEnabled', v);
+                },
+              ),
+              SwitchListTile(
+                title: const Text('댓글 알림'),
+                subtitle: const Text('가족이 내 기록에 댓글을 남기면 알려드려요'),
+                value: _comment,
+                onChanged: (v) {
+                  setState(() => _comment = v);
+                  _save('commentEnabled', v);
+                },
+              ),
+              SwitchListTile(
+                title: const Text('일정 알림'),
+                subtitle: const Text('다가오는 가족 일정을 알려드려요'),
+                value: _schedule,
+                onChanged: (v) {
+                  setState(() => _schedule = v);
+                  _save('scheduleEnabled', v);
+                },
+              ),
+            ],
+          ),
   );
 }
 

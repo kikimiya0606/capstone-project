@@ -14,6 +14,14 @@ class MoodService {
   CollectionReference<Map<String, dynamic>> _collection(String familyId) =>
       _firestore.collection('families').doc(familyId).collection('moods');
 
+  Stream<List<QueryDocumentSnapshot<Map<String, dynamic>>>> watchToday(String familyId) {
+    final today = DateTime.now().toIso8601String().split('T').first;
+    return _collection(familyId)
+        .where('date', isEqualTo: today)
+        .snapshots()
+        .map((snapshot) => snapshot.docs);
+  }
+
   Future<String> addMood({
     required String familyId,
     required String userId,

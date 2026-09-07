@@ -23,21 +23,25 @@ service cloud.firestore {
       allow write: if signedIn() && request.auth.uid == userId;
 
       match /settings/{settingsId} {
-        allow read, write: if signedIn() && request.auth.uid == userId;
+        // 알림 보내기 전에 다른 가족 구성원이 상대방의 알림 on/off 설정을 확인해야 해서
+        // read는 users/{userId} 본문서처럼 signedIn이면 허용(가족 공유 전제). write는 본인만.
+        allow read: if signedIn();
+        allow write: if signedIn() && request.auth.uid == userId;
       }
 
       match /notifications/{notificationId} {
         allow read, update: if signedIn() && request.auth.uid == userId;
         allow delete: if false;
-        // moodAlert만 예외적으로 클라이언트에서 직접 생성 허용 (createFamily/joinFamily와 같은 이유로
-        // Cloud Functions 배포 전까지 임시 조치 — Blaze 요금제 전환 시 Cloud Function으로 옮길 것).
+        // moodAlert/commentAlert/careAlert만 예외적으로 클라이언트에서 직접 생성 허용
+        // (createFamily/joinFamily와 같은 이유로 Cloud Functions 배포 전까지 임시 조치 —
+        // Blaze 요금제 전환 시 Cloud Function으로 옮길 것).
         // 같은 가족 구성원에게만, 정해진 필드로만, 안 읽음 상태로만 보낼 수 있게 제한한다.
         allow create: if signedIn() &&
           request.auth.uid != userId &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyId ==
             get(/databases/$(database)/documents/users/$(userId)).data.familyId &&
           request.resource.data.keys().hasOnly(['type', 'title', 'message', 'isRead', 'relatedId', 'createdAt']) &&
-          request.resource.data.type == 'moodAlert' &&
+          request.resource.data.type in ['moodAlert', 'commentAlert', 'careAlert'] &&
           request.resource.data.isRead == false;
       }
     }
@@ -99,9 +103,37 @@ service cloud.firestore {
       }
 
       match /dailyCare/{dateId} {
-        // 배정/완료는 인증과 가족 소속을 검사하는 Cloud Functions에서만 변경.
+        // Cloud Functions는 Blaze 미전환이라 배포 못 해서, 배정/완료 모두 클라이언트
+        // 트랜잭션으로 처리한다(DailyCareService 참고).
         allow read: if isFamilyMember(familyId);
-        allow write: if false;
+
+        // 아직 배정 안 된 가족 구성원 몫을 채워 넣는 경우 - 가족 구성원 uid만 키로
+        // 쓸 수 있고, 문서가 새로 생기는 경우.
+        allow create: if isFamilyMember(familyId) &&
+          request.resource.data.keys().hasOnly(
+            get(/databases/$(database)/documents/families/$(familyId)).data.members.keys()
+          );
+
+        allow update: if isFamilyMember(familyId) && (
+          // 위와 동일한 배정 채우기 - 기존 항목은 그대로 두고 새 키만 추가.
+          (
+            request.resource.data.diff(resource.data).removedKeys().size() == 0 &&
+            request.resource.data.diff(resource.data).changedKeys().size() == 0 &&
+            request.resource.data.keys().hasOnly(
+              get(/databases/$(database)/documents/families/$(familyId)).data.members.keys()
+            )
+          ) ||
+          // 본인이 배정받은 행동을 실제로 완료 처리하는 경우 - 본인 항목만, action은
+          // 그대로 두고 completedAt만 null에서 타임스탬프로 바뀔 수 있음.
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([request.auth.uid]) &&
+            resource.data[request.auth.uid].completedAt == null &&
+            request.resource.data[request.auth.uid].action == resource.data[request.auth.uid].action &&
+            request.resource.data[request.auth.uid].completedAt is timestamp
+          )
+        );
+
+        allow delete: if false;
       }
 
       match /moments/{momentId} {
