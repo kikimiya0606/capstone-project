@@ -1,0 +1,189 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/daily_care_service.dart';
+import '../../services/family_service.dart';
+import '../controllers/dog_controller.dart';
+import '../models/care_reminder.dart';
+import '../widgets/pet_chat_sheet.dart';
+import 'dog_room_screen.dart';
+
+class FamilyDogRoom extends StatefulWidget {
+  const FamilyDogRoom({super.key, required this.controller, required this.uid});
+  final DogController controller;
+  final String? uid;
+  @override
+  State<FamilyDogRoom> createState() => _FamilyDogRoomState();
+}
+
+class _FamilyDogRoomState extends State<FamilyDogRoom> {
+  StreamSubscription<Map<String, dynamic>>? _careSubscription;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+  _familySubscription;
+  Timer? _timer;
+  String? _familyId;
+  String? _error;
+  Map<String, dynamic> _care = {};
+  Map<String, dynamic> _members = {};
+  CareReminder? _reminder;
+  bool _dialogOpen = false;
+  final _shown = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _connect();
+    _timer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _refreshReminder(),
+    );
+  }
+
+  Future<void> _connect() async {
+    final uid = widget.uid;
+    if (uid == null) return;
+    try {
+      final familyId = await FamilyService.instance.fetchMyFamilyId(uid);
+      if (!mounted || familyId == null) return;
+      _familyId = familyId;
+      _familySubscription = FirebaseFirestore.instance
+          .collection('families')
+          .doc(familyId)
+          .snapshots()
+          .listen((doc) {
+            _members = Map<String, dynamic>.from(
+              doc.data()?['members'] as Map? ?? {},
+            );
+            _refreshReminder();
+          }, onError: (Object error) => _failed());
+      _careSubscription = DailyCareService.instance.watchToday(familyId).listen(
+        (care) {
+          if (!mounted) return;
+          setState(() {
+            _care = care;
+            _error = null;
+          });
+          _refreshReminder();
+        },
+        onError: (Object error) => _failed(),
+      );
+    } catch (_) {
+      _failed();
+    }
+  }
+
+  void _failed() {
+    if (mounted) {
+      setState(() {
+        _error = '돌봄 상태를 불러오지 못했어요. 잠시 후 다시 확인해주세요.';
+        _care = {};
+        _reminder = null;
+      });
+    }
+  }
+
+  void _refreshReminder() {
+    if (!mounted) return;
+    final reminder = pendingCare(_care, _members, DateTime.now());
+    setState(() => _reminder = reminder);
+    if (reminder != null) _showReminder(reminder);
+  }
+
+  Future<void> _showReminder(CareReminder reminder) async {
+    if (_dialogOpen) return;
+    final key = 'care-reminder:$_familyId:${widget.uid}:${reminder.key}';
+    if (!_shown.add(key)) return;
+    final preferences = await SharedPreferences.getInstance();
+    if (!mounted ||
+        _reminder?.key != reminder.key ||
+        preferences.getBool(key) == true) {
+      return;
+    }
+    // Only show automatically while this room is the active route.
+    if (ModalRoute.of(context)?.isCurrent != true) {
+      _shown.remove(key);
+      return;
+    }
+    _dialogOpen = true;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('강아지가 기다리고 있어요'),
+        content: Text(reminder.message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+    _dialogOpen = false;
+    await preferences.setBool(key, true);
+  }
+
+  String _careContext() => _members.entries
+      .map((member) {
+        final record = _care[member.key];
+        if (record is! Map || _care['_dateId'] != careDate()) {
+          return '${member.value}: 배정 확인 중';
+        }
+        return '${member.value}: ${record['action']} / ${record['completedAt'] == null ? '미완료' : '완료'}';
+      })
+      .join('\n');
+
+  void _chat() => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) => PetChatSheet(careContext: _careContext),
+  );
+
+  Future<void> _complete(CareAction action) async {
+    if (_familyId == null || widget.uid == null) return;
+    final label = switch (action) {
+      CareAction.feed => careActions[0],
+      CareAction.wash => careActions[1],
+      CareAction.play => careActions[2],
+      CareAction.sleep => careActions[3],
+    };
+    try {
+      await DailyCareService.instance.completeSelectedAction(
+        familyId: _familyId!,
+        uid: widget.uid!,
+        action: label,
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('돌봄 완료를 저장하지 못했어요. 연결을 확인하고 다시 해주세요.')),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _careSubscription?.cancel();
+    _familySubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      if (_error != null)
+        Padding(padding: const EdgeInsets.all(8), child: Text(_error!)),
+      Expanded(
+        child: DogRoomScreen(
+          controller: widget.controller,
+          onCareAction: _complete,
+          careMessage: _reminder?.message,
+          onTalk: _chat,
+        ),
+      ),
+    ],
+  );
+}

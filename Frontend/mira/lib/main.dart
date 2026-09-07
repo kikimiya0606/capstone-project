@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +13,7 @@ import 'design/mira_icons.dart';
 import 'dog_room/controllers/dog_controller.dart';
 import 'dog_room/services/character_save_service.dart';
 import 'dog_room/services/dog_save_service.dart';
-import 'dog_room/screens/dog_room_screen.dart';
+import 'dog_room/screens/family_dog_room.dart';
 import 'firebase_options.dart';
 import 'memories/memory_page.dart';
 import 'mood/mood_diary_sheet.dart';
@@ -33,7 +34,17 @@ final textScaleNotifier = ValueNotifier<double>(1.0);
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    const useEmulators = bool.fromEnvironment('USE_FIREBASE_EMULATORS');
+    await Firebase.initializeApp(options: useEmulators
+        ? const FirebaseOptions(apiKey: 'demo-api-key', appId: '1:123:web:demo',
+            messagingSenderId: '123', projectId: 'demo-mira-care')
+        : DefaultFirebaseOptions.currentPlatform);
+    if (useEmulators) {
+      const host = String.fromEnvironment('FIREBASE_EMULATOR_HOST', defaultValue: '127.0.0.1');
+      await FirebaseAuth.instance.useAuthEmulator(host, 9099);
+      FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
+      FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
+    }
   } catch (_) {
     // Web/Android는 아직 Firebase 앱 등록 전이라 화면 미리보기용으로 무시.
   }
@@ -1298,25 +1309,6 @@ class _MainShellState extends State<MainShell> {
 class _FamilyCareSection extends StatelessWidget {
   const _FamilyCareSection();
 
-  Future<void> _pickAction(BuildContext context, String familyId, String uid) async {
-    final action = await showDialog<String>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('오늘 무엇을 할까요?'),
-        children: [
-          for (final action in careActions)
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, action),
-              child: Text(action),
-            ),
-        ],
-      ),
-    );
-    if (action != null) {
-      await DailyCareService.instance.selectAction(familyId: familyId, uid: uid, action: action);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final myUid = currentUidOrNull();
@@ -1343,6 +1335,9 @@ class _FamilyCareSection extends StatelessWidget {
             return StreamBuilder<Map<String, dynamic>>(
               stream: DailyCareService.instance.watchToday(familyId),
               builder: (context, careSnapshot) {
+                if (careSnapshot.hasError) {
+                  return const Text('돌봄 배정을 불러오지 못했어요. 잠시 후 다시 확인해주세요.');
+                }
                 final care = careSnapshot.data ?? const {};
                 if (members.isEmpty) {
                   return const Text('가족 구성원이 없어요.', style: TextStyle(color: Colors.black54));
@@ -1407,10 +1402,7 @@ class _FamilyCareSection extends StatelessWidget {
                                         style: const TextStyle(fontWeight: FontWeight.w700),
                                       ),
                                     ),
-                                    TextButton(
-                                      onPressed: () => _pickAction(context, familyId, uid),
-                                      child: Text(record != null ? '변경하기' : '선택하기'),
-                                    ),
+                                    const Text('자동 배정', style: TextStyle(color: Colors.black54)),
                                   ],
                                 ),
                               );
@@ -1684,6 +1676,9 @@ class _DailyQuestsSection extends StatelessWidget {
         return StreamBuilder<Map<String, dynamic>>(
           stream: DailyCareService.instance.watchToday(familyId),
           builder: (context, careSnapshot) {
+            if (careSnapshot.hasError) {
+              return const Text('돌봄 배정을 불러오지 못했어요. 잠시 후 다시 확인해주세요.');
+            }
             final myCareRecord =
                 (careSnapshot.data ?? const {})[myUid] as Map<String, dynamic>?;
             final cared = myCareRecord?['completedAt'] != null;
@@ -1771,38 +1766,14 @@ class FamilyPage extends StatefulWidget {
 
 const _roleEmoji = {'아빠': '👨', '엄마': '👩', '아들': '👦', '딸': '👧'};
 
-const _careActionLabels = {
-  CareAction.feed: '🍚 밥 주기',
-  CareAction.wash: '🛁 목욕',
-  CareAction.play: '🎾 놀기',
-  CareAction.sleep: '😴 재우기',
-};
-
-// 강아지 게임에서 실제로 그 행동을 해야 오늘의 돌봄이 완료로 바뀌도록 연결.
 class _CareCompletingDogRoom extends StatelessWidget {
   const _CareCompletingDogRoom({required this.controller});
   final DogController controller;
 
   @override
-  Widget build(BuildContext context) {
-    final myUid = currentUidOrNull();
-    return DogRoomScreen(
-      controller: controller,
-      onCareAction: myUid == null
-          ? null
-          : (action) async {
-              final label = _careActionLabels[action];
-              if (label == null) return;
-              final familyId = await FamilyService.instance.fetchMyFamilyId(myUid);
-              if (familyId == null) return;
-              await DailyCareService.instance.completeSelectedAction(
-                familyId: familyId,
-                uid: myUid,
-                action: label,
-              );
-            },
-    );
-  }
+  Widget build(BuildContext context) => FamilyDogRoom(
+    key: ValueKey(currentUidOrNull()),
+    controller: controller, uid: currentUidOrNull());
 }
 
 class _FamilyPageState extends State<FamilyPage> {

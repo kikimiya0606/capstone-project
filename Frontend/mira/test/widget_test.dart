@@ -229,6 +229,31 @@ void main() {
     dog.dispose();
   });
 
+  testWidgets('강아지 상태 문구와 느낌표가 가족 대화로 연결된다', (tester) async {
+    await phone(tester);
+    final dog = DogController(_DogStorage());
+    var talks = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DogRoomScreen(
+          controller: dog,
+          careMessage: '엄마 기다리는 중!',
+          onTalk: () => talks++,
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('엄마 기다리는 중!'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 6));
+    await tester.tap(find.byKey(const ValueKey('dog-speech-toggle')));
+    expect(talks, 1);
+    await tester.tap(find.text('강아지와 대화하기'));
+    expect(talks, 2);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    dog.dispose();
+  });
+
   test('돌봄 상태를 다시 불러와도 경험치를 덮어쓰지 않는다', () async {
     final storage = _DogStorage();
     final dog = DogController(storage);

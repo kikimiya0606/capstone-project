@@ -6,6 +6,7 @@ from . import gemini_service
 from .config import get_settings
 from .emotion_model import get_classifier
 from .schemas import MoodAnalysisRequest, MoodAnalysisResponse, PetPhotoAnalysisResponse
+from .schemas import PetChatRequest, PetChatResponse
 
 app = FastAPI(title="AI Family Emotion Server")
 
@@ -20,6 +21,20 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.post('/pet-chat', response_model=PetChatResponse)
+def pet_chat(req: PetChatRequest) -> PetChatResponse:
+    if not get_settings().gemini_api_key:
+        raise HTTPException(status_code=503, detail='AI 대화가 아직 설정되지 않았어요.')
+    try:
+        reply = gemini_service.generate_pet_reply(req.message, req.care_context, req.history)
+    except genai_errors.APIError as exc:
+        code = 429 if exc.code == 429 else 502
+        raise HTTPException(status_code=code, detail='잠시 후 다시 말 걸어주세요.') from exc
+    except (ValueError, TimeoutError) as exc:
+        raise HTTPException(status_code=502, detail='답변을 받지 못했어요. 다시 시도해주세요.') from exc
+    return PetChatResponse(reply=reply)
 
 
 @app.post("/analyze-mood", response_model=MoodAnalysisResponse)

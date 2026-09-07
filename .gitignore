@@ -216,3 +216,4 @@ __marimo__/
 
 # mira 화면 검토용 골든 스크린샷 (CAPTURE_UI=true 테스트 산출물) - 로컬 전용, 커밋 대상 아님
 /.mira-work/
+/.tmp/

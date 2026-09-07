@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import Literal
 
 
 class MoodAnalysisRequest(BaseModel):
@@ -21,3 +22,18 @@ class MoodAnalysisResponse(BaseModel):
 class PetPhotoAnalysisResponse(BaseModel):
     breed: str
     color_description: str
+
+
+class PetChatTurn(BaseModel):
+    role: Literal['user', 'model']
+    text: str = Field(min_length=1, max_length=1000)
+
+
+class PetChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=500, pattern=r'\S')
+    care_context: str = Field(default='', max_length=2000)
+    history: list[PetChatTurn] = Field(default_factory=list, max_length=12)
+
+
+class PetChatResponse(BaseModel):
+    reply: str

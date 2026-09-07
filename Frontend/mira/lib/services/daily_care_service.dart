@@ -1,7 +1,15 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 // dog_room의 실제 돌봄 버튼(밥 주기/목욕/놀기/재우기)과 맞춤.
 const careActions = ['🍚 밥 주기', '🛁 목욕', '🎾 놀기', '😴 재우기'];
+
+String careDate([DateTime? now]) => (now ?? DateTime.now())
+    .toUtc()
+    .add(const Duration(hours: 1))
+    .toIso8601String()
+    .substring(0, 10);
 
 class DailyCareService {
   DailyCareService._();
@@ -9,32 +17,58 @@ class DailyCareService {
 
   final _firestore = FirebaseFirestore.instance;
 
-  String _todayId() {
-    final now = DateTime.now();
-    final month = now.month.toString().padLeft(2, '0');
-    final day = now.day.toString().padLeft(2, '0');
-    return '${now.year}-$month-$day';
-  }
-
-  DocumentReference<Map<String, dynamic>> _doc(String familyId) => _firestore
-      .collection('families')
-      .doc(familyId)
-      .collection('dailyCare')
-      .doc(_todayId());
-
   Stream<Map<String, dynamic>> watchToday(String familyId) {
-    return _doc(familyId).snapshots().map((snapshot) => snapshot.data() ?? {});
-  }
+    late StreamController<Map<String, dynamic>> controller;
+    StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? subscription;
+    Timer? timer;
+    String? date;
+    bool loading = false;
+    bool closed = false;
+    Future<void> refresh() async {
+      if (closed || loading || date == careDate()) return;
+      loading = true;
+      try {
+        final result = await FirebaseFunctions.instance
+            .httpsCallable('ensureDailyCare')
+            .call({'familyId': familyId});
+        if (closed) return;
+        final nextDate = result.data['dateId'] as String;
+        await subscription?.cancel();
+        if (closed) return;
+        date = nextDate;
+        controller.add({});
+        subscription = _firestore
+            .collection('families')
+            .doc(familyId)
+            .collection('dailyCare')
+            .doc(nextDate)
+            .snapshots()
+            .listen(
+              (doc) => controller.add({...?doc.data(), '_dateId': nextDate}),
+              onError: (Object error, StackTrace stack) {
+                date = null;
+                controller.addError(error, stack);
+              },
+            );
+      } catch (error, stack) {
+        if (!closed) controller.addError(error, stack);
+      } finally {
+        loading = false;
+      }
+    }
 
-  // 오늘 할 일을 고르기만 한 상태 - 실제로 강아지 게임에서 그 행동을 해야 완료로 바뀐다.
-  Future<void> selectAction({
-    required String familyId,
-    required String uid,
-    required String action,
-  }) {
-    return _doc(familyId).set({
-      uid: {'action': action, 'completedAt': null},
-    }, SetOptions(merge: true));
+    controller = StreamController<Map<String, dynamic>>(
+      onListen: () {
+        refresh();
+        timer = Timer.periodic(const Duration(minutes: 1), (_) => refresh());
+      },
+      onCancel: () async {
+        closed = true;
+        timer?.cancel();
+        await subscription?.cancel();
+      },
+    );
+    return controller.stream;
   }
 
   Future<void> completeSelectedAction({
@@ -42,13 +76,9 @@ class DailyCareService {
     required String uid,
     required String action,
   }) async {
-    final snapshot = await _doc(familyId).get();
-    final record = snapshot.data()?[uid] as Map<String, dynamic>?;
-    if (record == null || record['action'] != action || record['completedAt'] != null) {
-      return;
-    }
-    await _doc(familyId).set({
-      uid: {'action': action, 'completedAt': FieldValue.serverTimestamp()},
-    }, SetOptions(merge: true));
+    await FirebaseFunctions.instance.httpsCallable('completeDailyCare').call({
+      'familyId': familyId,
+      'action': action,
+    });
   }
 }
