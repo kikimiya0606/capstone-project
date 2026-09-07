@@ -1,380 +1,193 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=AI%20Family&fontSize=80&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=가족을%20잇는%20감정%20AI%20플랫폼&descAlignY=60&descSize=18" width="100%"/>
+# MIRA
 
-<br/>
+### Moments In Resonance, Always
 
-```
-░█████╗░██╗    ███████╗░█████╗░███╗░░░███╗██╗██╗░░░░░██╗░░░██╗
-██╔══██╗██║    ██╔════╝██╔══██╗████╗░████║██║██║░░░░░╚██╗░██╔╝
-███████║██║    █████╗░░███████║██╔████╔██║██║██║░░░░░░╚████╔╝░
-██╔══██║██║    ██╔══╝░░██╔══██║██║╚██╔╝██║██║██║░░░░░░░╚██╔╝░░
-██║░░██║██║    ██║░░░░░██║░░██║██║░╚═╝░██║██║███████╗░░░██║░░░
-╚═╝░░╚═╝╚═╝    ╚═╝░░░░░╚═╝░░╚═╝╚═╝░░░░╚═╝╚═╝╚══════╝░░░╚═╝░░░
-```
+**함께한 순간이 서로의 마음에 오래 울리도록**
 
-### 🌱 생성형 AI 기반 감정 분석 및 캐릭터 성장 시스템을 활용한 가족 소통 플랫폼
+가족의 감정과 일상을 기록하고, 함께 반려견을 돌보며 대화를 이어가는 가족 소통 플랫폼
 
-<br/>
+![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?logo=firebase&logoColor=black)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Gemini](https://img.shields.io/badge/Gemini-8E75B2?logo=googlegemini&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white)
 
-[![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
-[![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev)
-[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com)
-[![Claude](https://img.shields.io/badge/Claude_API-D97706?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
-[![KoBERT](https://img.shields.io/badge/KoBERT-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co)
-[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org)
-
-<br/>
-
-> *"감정을 기록하고, AI가 이어주고, 가족이 함께 자랍니다"*
-
-<br/>
-
-![GitHub last commit](https://img.shields.io/github/last-commit/kikimiya0606/capstone-project?style=flat-square&color=6366f1)
-![GitHub repo size](https://img.shields.io/github/repo-size/kikimiya0606/capstone-project?style=flat-square&color=f59e0b)
-[![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
+[기능](#features) · [실행 방법](#start) · [개발 상태](#status) · [팀 소개](#team)
 
 </div>
 
----
+## 프로젝트 소개
 
-## 📌 빠른 링크
+MIRA는 각자의 오늘 감정과 가족에게 공유하고 싶은 이야기를 구분해 기록하는 서비스입니다. 가족 이야기와 사진에 반응하고, 주간 퀘스트를 함께 완료하며, MIRA 인사이트와 반려견 대화를 통해 일상 속 대화의 계기를 만듭니다.
 
-<div align="center">
+현재 통합 앱은 **`Frontend/mira`**입니다. 아래 내용은 PR #31까지 머지된 구현을 기준으로 하며, 초기 기획서의 기능 목록과 실제 구현 상태를 구분합니다.
 
-| 📄 기획서 | 🏗️ 시스템 아키텍처 | 🗄️ DB 설계 | 🚀 시작하기 | 👥 팀 소개 |
-|:---:|:---:|:---:|:---:|:---:|
-| [바로가기](팀%20프로젝트%20제안서/4조_가족소통플랫폼_팀프로젝트기획서.pdf) | [바로가기](#arch) | [바로가기](#db) | [바로가기](#start) | [바로가기](#team) |
+<a id="features"></a>
+## 주요 기능
 
-</div>
+| 기능 | 현재 구현 |
+| --- | --- |
+| 계정과 가족 연결 | 이메일 회원가입·로그인, 초대 코드로 가족 참여, 이름·역할·프로필 설정 |
+| 나의 오늘 감정 | 감정 태그와 한 줄 기록, 감정 분류 및 Gemini 공감 메시지 연동 |
+| 가족 이야기 | 가족에게 공유할 글 작성, 좋아요·댓글, 작성자 수정·삭제 |
+| 가족 사진첩 | 사진 공유와 반응, 역할 대신 실제 작성자 이름 표시 |
+| 패밀리 무드 | 오늘 기록한 가족별 최신 감정 중 ‘기쁨’의 비율. 기록이 없으면 ‘기록 전’ 표시 |
+| 패밀리 에너지 | 이번 주 글·사진·좋아요·기존 돌봄 완료 기록·퀘스트에서 계산한 활동 점수 |
+| 가족 퀘스트 | 매주 2개: 가족 모두 이야기 하나씩 남기기, 가족 사진 한 장 공유하기 |
+| 일일 퀘스트 | 오늘 감정·이야기·기존 돌봄 완료 기록과 연결된 진행도 |
+| MIRA 인사이트 | 가족 프로필과 최근 공개 이야기를 참고하는 Ollama 대화, 말풍선·입력창·재시도 |
+| 반려견 설정 | 이름·견종·털 특징 입력, 사진에서 견종·색상 분석, 별도 서버의 캐릭터 생성 |
+| 반려견 성격 테스트 | 기다림·새 친구·귀가 인사·새 장난감 반응에 대한 4문항, 문항별 3개 선택지 |
+| 반려견과 대화 | 이름과 성격 테스트 답변을 전달해 행동 성향에 따른 말투를 Gemini 대화에 반영 |
 
----
+### 기록과 점수의 기준
 
-## 📖 프로젝트 소개
+- **오늘의 감정**과 **가족 활동 / 가족 이야기**를 구분하고, 각각 기록 버튼과 설명을 제공합니다.
+- 패밀리 무드는 사용자가 직접 선택한 감정으로 계산합니다. AI 감정 분류 결과를 점수로 바꾸는 방식은 아닙니다.
+- 패밀리 에너지: 공유 글·사진 각각 10점, 해당 게시물의 좋아요 2점, 기존 돌봄 완료 5점, 주간 퀘스트 각각 40점입니다.
+- 가족 퀘스트와 에너지는 **한국 시간 월요일 00:00**부터 한 주 단위로 집계합니다. 같은 사람의 반복 글은 가족 참여 인원을 늘리지 않습니다.
+- 점수는 실제 기록에서 다시 계산하므로 삭제하거나 좋아요를 취소하면 함께 바뀝니다.
+- 인사이트 문맥에는 비공개 감정 일기 원문과 사진 바이트를 넣지 않습니다. 대화 기록은 현재 화면 세션 동안 유지됩니다.
 
-현대 사회의 **1인 가구 증가**와 바쁜 생활 패턴으로 인해 가족 간 대화 시간이 급격히 감소하고 있으며, 이는 정서적 거리감 심화로 이어집니다.
+### 화면 디테일
 
-기존 메신저는 단순 정보 전달에 치중되어 있어, AI 감정 분석 기술로 사용자의 마음을 읽고 **공감을 유도하는 새로운 소통 방식**이 필요합니다.
+기존 색상과 카드 스타일을 유지하면서 온보딩의 MIRA 의미, 단어 단위 줄바꿈, 단색 기본 프로필, 퀘스트 완료 숫자 정렬을 정리했습니다. ‘살펴볼 신호’는 설명을 왼쪽에, 숫자를 오른쪽 고정 열에 배치했습니다. 반려견 입력란과 인사이트의 고정 예시는 제거했습니다.
 
-**AI Family**는 감정 기록을 가족 간 대화의 매개체로 활용하고, **KoBERT 감정 분석**과 **Claude API 공감 메시지 생성**을 결합해 깊이 있는 정서 교류를 이끌어내며, **가족 정원 성장 시스템(게이미피케이션)** 으로 꾸준한 참여를 유도합니다.
+자세한 계산 기준과 기능 설명은 [실제 가족 기록과 성격 대화](docs/live-family-features.md)를 참고하세요.
 
-<br/>
+## 서비스 구성
 
-## ✨ 핵심 기능
-
-<div align="center">
-
-|  | 기능 | 설명 | ID |
-|:---:|:---|:---|:---:|
-| 📔 | **감정 일기** | KoBERT 기반 한국어 감정 자동 분류 (긍정 / 부정 / 중립) | FR-002, 003 |
-| 💬 | **AI 공감 메시지** | Claude API가 생성하는 감정 맞춤형 따뜻한 메시지 | FR-004 |
-| ❓ | **AI 데일리 질문** | 가족 간 대화를 유도하는 매일 새로운 맞춤형 질문 | FR-004 |
-| 🌿 | **가족 정원 성장** | 소통 활동량에 따라 함께 성장하는 캐릭터 & 정원 | FR-006 |
-| 📅 | **스마트 일정 공유** | 가족 공동 일정 등록, 조회, 알림 | FR-005 |
-| 🕰️ | **타임캡슐** | 소중한 감정과 추억을 보관하고 미래에 다시 여는 아카이브 | FR-007 |
-| 📊 | **감정 리포트** | 주간 / 월간 감정 흐름 및 가족 소통 현황 분석 | FR-001 |
-
-</div>
-
----
-
-## 🎯 프로젝트 목표 및 산출물
-
-<div align="center">
-
-| 🎯 목표 | 📦 산출물 |
-|:---|:---|
-| ✅ AI 감정 분석 시스템 구축 — 한국어 특화 KoBERT 모델 | 📱 **모바일 앱 (Flutter)** — iOS / Android 지원 |
-| ✅ 자연스러운 대화 유도 — AI 기반 맞춤형 질문 생성 | 🤖 **AI 감정 분석 모듈** — KoBERT 한국어 감정 분류 |
-| ✅ 지속적 참여 유도 — 게이미피케이션(캐릭터 성장) | 💬 **AI 연동 대화 생성** — Claude API 공감 메시지 / 질문 |
-| ✅ 디지털 아카이브 구축 — 감정과 추억 데이터 보관 | 🌿 **가족 정원 성장 시스템** — 소통 활동량 기반 게이미피케이션 |
-
-</div>
-
----
-
-## 🖼️ 서비스 시나리오
-
-<div align="center">
-
-> 🚶 **온보딩** → 👨‍👩‍👧 **가족 연결** → 🏠 **홈 & 데일리 질문** → 💭 **AI 정서 소통** → 📦 **타임캡슐** → 📅 **일정 공유** → 🌿 **정원 성장**
-
-</div>
-
-| 단계 | 시나리오 | 설명 |
-|:---:|:---|:---|
-| 01 | **로그인 / 회원가입** | 이름, 이메일, 비밀번호 입력 후 가족 초대 화면으로 자동 전환 |
-| 02 | **가족 초대 및 연결** | 가족 역할(아빠, 엄마 등) 선택 후 초대 코드로 그룹 연결 |
-| 03 | **메인 홈 & 데일리 질문** | AI 생성 오늘의 질문 확인 · 무드 태그 선택 · 한 줄 감정 입력 |
-| 04 | **AI 정서 소통** | AI가 감정 일기를 분석해 가족에게 공감 메시지 팝업 전달 |
-| 05 | **추억 보관소 & 타임캡슐** | 대화 기록을 카드로 저장, 예약 날짜에 타임캡슐 공개 |
-| 06 | **스마트 일정 공유** | 가족 공동 및 개인 일정 등록, 기념일 알림 |
-| 07 | **정원 성장 (게임)** | 소통 활동 참여도에 따른 경험치 · 캐릭터 레벨업 · 꾸미기 해금 |
-
-**타깃 사용자:**
-- 👨‍👩‍👧 **핵가족** — 부모 + 자녀 (바쁜 일상으로 대화가 줄어든 가족)
-- 🏠 **조부모 포함 대가족** — 지리적으로 떨어진 세대 간 소통이 필요한 가족
-- 🧑‍💼 **1인 가구 청년** — 독립 후 가족과의 연락이 줄어든 20~30대
-
----
-
-<a id="arch"></a>
-## 🏗️ 시스템 아키텍처
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                  📱 Frontend (Flutter / Dart)                 │
-│              iOS / Android Cross-Platform App                 │
-│     Provider · Riverpod · 감정일기 · 캘린더 · 정원 UI        │
-└─────────────────────────┬────────────────────────────────────┘
-                          │ HTTPS / REST API
-┌─────────────────────────▼────────────────────────────────────┐
-│             🖥️ Backend (Node.js + Firebase)                   │
-│   Firebase Auth  │  REST API Server  │  Cloud Functions       │
-│   회원가입/로그인  │  요청/응답 처리   │  알림/푸시 관리        │
-└──────┬───────────────────────────────────────┬───────────────┘
-       │                                        │
-┌──────▼──────────────┐           ┌─────────────▼─────────────┐
-│  🧠 AI 감정 분석     │           │   ✨ 생성형 AI (Claude)    │
-│  Python + KoBERT   │           │    Anthropic Claude API    │
-│  · 한국어 감정 분류  │           │    · 공감 메시지 생성       │
-│  · 텍스트/형태소 분석│           │    · 데일리 질문 생성       │
-│  · 감정 점수 산출   │           │    · 감정 요약 리포트       │
-└──────┬──────────────┘           └─────────────┬─────────────┘
-       │                                         │
-       │          ┌──────────────────────────────┘
-       └──────────▼──────────────────────────────────────────┐
-                  │   🔥 Firebase Realtime Database           │
-                  │  Users │ Emotions │ Garden │ Timecapsules │
-                  └──────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    App["MIRA · Flutter"] --> Firebase["Firebase Auth / Firestore"]
+    App --> AI["AI 서버 · FastAPI :8000"]
+    AI --> Emotion["학습된 한국어 감정 분류 모델"]
+    AI --> Gemini["Gemini · 공감 메시지 / 사진 분석 / 반려견 대화"]
+    AI --> Ollama["Ollama :11434 · MIRA 인사이트"]
+    App --> Character["캐릭터 서버 · Flask / Colab GPU"]
+    Character --> SD["Stable Diffusion 1.5 + rembg"]
+    App -. 기존 돌봄 호출 .-> Functions["Firebase Cloud Functions · 별도 확인 필요"]
 ```
 
-**핵심 데이터 흐름 (5-Step):**
+AI 대화 서버와 캐릭터 생성 서버는 별도 프로세스입니다. **Colab에서 캐릭터 서버만 켜도 감정 분석이나 MIRA 인사이트가 실행되는 것은 아닙니다.** 현재 대화 구현은 Gemini와 Ollama를 사용합니다.
 
-```
-① 사용자 입력  ──▶  ② KoBERT 감정 분석  ──▶  ③ Claude 응답 생성
-                                                      │
-⑤ 피드백 제공  ◀──  ④ Firebase 저장     ◀────────────┘
-(알림·시각화·성장)       (실시간 동기화)
-```
-
-**외부 서비스 연동:**
-
-```
-Firebase Cloud Messaging  ──  푸시 알림 전송
-Firebase Storage          ──  이미지 · 첨부파일 저장
-Claude API (Anthropic)    ──  생성형 AI 응답 제공
-KoBERT (Hugging Face)     ──  감정 분석 모델 제공
-DALL·E 3 (OpenAI)         ──  정원 캐릭터 이미지 생성
-GitHub Actions            ──  코드 저장 · CI/CD
-```
-
----
-
-<a id="db"></a>
-## 🗄️ 데이터베이스 설계
-
-<div align="center">
-
-### 테이블 구조 (11개 테이블, KST 기준 저장)
-
-| 카테고리 | 테이블 | 주요 필드 |
-|:---:|:---|:---|
-| 👤 **사용자 / 가족** | `USERS`, `FAMILIES`, `FAMILY_MEMBERS` | user_id(PK), family_id(FK), invite_code(UQ), role |
-| 💭 **감정 / AI 분석** | `EMOTION_RECORDS`, `AI_ANALYSIS_RESULTS` | content, emotion_label, sentiment, confidence, empathy_message |
-| 💬 **가족 소통** | `DAILY_QUESTIONS`, `QUESTION_RESPONSES`, `CALENDAR_EVENTS` | question_text, response_text, generated_by(AI), event_date |
-| 🌿 **게이미피케이션** | `GARDEN_STATUS`, `CHARACTER_GROWTH_LOGS`, `TIMECAPSULES` | level, growth_point, action_type, open_date |
-
-</div>
-
-**핵심 관계:**
-
-```
-USERS (1) ──── (N) FAMILY_MEMBERS (N) ──── (1) FAMILIES (1) ──── (N) CALENDAR_EVENTS
-                                                    │                       
-                         (N) EMOTION_RECORDS ───────┘         (N) DAILY_QUESTIONS
-                                │                                      │
-                    AI_ANALYSIS_RESULTS (1:1)           QUESTION_RESPONSES (1:N)
-
-FAMILIES (1) ──── (1) GARDEN_STATUS (1) ──── (N) CHARACTER_GROWTH_LOGS
-GARDEN_STATUS (1) ──── (N) TIMECAPSULES
-```
-
-**Core Data Flow:**
-
-```
-사용자 입력 → 감정 기록 저장 → AI 감정 분석 → 공감 메시지 생성
-    → 가족 공유 → 성장 포인트 반영 → 타임캡슐 저장
-```
-
----
+| 위치 | 용도 |
+| --- | --- |
+| `Frontend/mira` | 현재 통합 Flutter 앱과 테스트 |
+| `Backend/ai-server` | 감정 분석·사진 분석·반려견 대화·인사이트 API |
+| `Backend/character-server` | GPU 기반 캐릭터 이미지 생성 서버 |
+| `Backend/functions` | Firebase Cloud Functions 코드, Node.js 20 |
+| `Backend/firestore.rules` | 계정·가족 기록 접근 권한 |
+| `docs` | 기능 기준과 인계 문서 |
 
 <a id="start"></a>
-## 🚀 시작하기
+## 로컬 실행
 
-### 사전 요구사항
+현재 확인한 실행 환경은 Windows, Python 3.11, Dart 3.11.5를 포함하는 Flutter SDK와 Chrome입니다. Flutter 의존성은 `pubspec.lock`과 `pubspec_overrides.yaml`을 함께 사용합니다. Ollama 설치와 사용할 Gemini 모델의 API 접근 권한도 필요합니다.
 
-- Flutter SDK `3.x` 이상
-- Node.js `18.x` 이상
-- Python `3.10` 이상
-- Firebase CLI (`npm install -g firebase-tools`)
-- Anthropic API 키 · OpenAI API 키
+### 1. 저장소와 Firebase 준비
 
-### 설치 및 실행
-
-**1. 레포지토리 클론**
-
-```bash
+```powershell
 git clone https://github.com/kikimiya0606/capstone-project.git
 cd capstone-project
 ```
 
-**2. Flutter 앱 실행**
+팀 Firebase 프로젝트의 이메일/비밀번호 인증과 Firestore를 사용합니다. 다른 프로젝트로 실행한다면 `Frontend/mira/lib/firebase_options.dart`와 플랫폼별 Firebase 설정을 해당 프로젝트에 맞춰 준비하세요.
 
-```bash
-cd frontend
+### 2. AI 서버 실행
+
+저장소 루트에서 실행합니다.
+
+```powershell
+cd Backend/ai-server
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+`Backend/ai-server/.env`를 만들고 본인 환경의 값을 넣습니다.
+
+```dotenv
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=your_available_gemini_model_id
+EMOTION_MODEL_PATH=your_finetuned_model_path_or_huggingface_repo
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen3:4b
+```
+
+`GEMINI_MODEL`은 사용할 수 있는 실제 모델 ID로, `EMOTION_MODEL_PATH`는 학습된 감정 모델 경로로 바꿔야 합니다. 기본 `klue/bert-base`만으로는 학습된 6종 감정 분류를 대신할 수 없습니다. 모델의 라벨 순서는 `불안 / 분노 / 상처 / 슬픔 / 당황 / 기쁨`입니다. 비공개 Hugging Face 모델은 별도 접근 인증이 필요합니다.
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+상태 확인: `http://127.0.0.1:8000/health`, API 문서: `http://127.0.0.1:8000/docs`. 상태 확인 응답만으로 각 AI 모델의 연결까지 검증되는 것은 아닙니다. `.env`를 수정하면 AI 서버를 다시 시작하세요. `.env`와 실제 키는 커밋하지 않습니다.
+
+### 3. Ollama 실행
+
+별도 터미널에서 모델을 준비합니다.
+
+```powershell
+ollama pull qwen3:4b
+```
+
+Ollama 앱이 실행 중이면 기본 주소 `127.0.0.1:11434`를 사용합니다. 서버가 실행되지 않은 환경에서는 `ollama serve`로 시작합니다. MIRA 인사이트에는 Ollama와 위 AI 서버가 모두 필요합니다.
+
+### 4. Flutter를 Chrome에서 실행
+
+저장소 루트의 새 터미널에서 실행합니다.
+
+```powershell
+cd Frontend/mira
 flutter pub get
-flutter run
+flutter run -d chrome --dart-define=AI_SERVER_BASE_URL=http://127.0.0.1:8000
 ```
 
-**3. Node.js 백엔드 실행**
+앱의 AI 서버 기본 주소는 `http://localhost:8000`입니다. `AI_SERVER_BASE_URL`은 Flutter 실행 시 설정값이므로 주소를 바꾸면 해당 옵션으로 앱을 다시 실행합니다. 실기기에서는 PC에 접근할 수 있는 주소와 서버 바인딩 설정을 사용해야 합니다.
 
-```bash
-cd backend
-npm install
-npm run dev
+### 5. 캐릭터 생성 서버 연결
+
+캐릭터 이미지 생성에는 GPU 서버 또는 Colab 세션이 추가로 필요합니다. [캐릭터 서버 실행 안내](Backend/character-server/README.md)를 따라 실행한 뒤, `Frontend/mira/lib/services/character_server_service.dart`의 `_characterServerBaseUrl`을 현재 서버 주소로 바꾸고 앱을 다시 실행하세요. Colab을 재시작하면 터널 주소도 확인해야 합니다.
+
+반려견 사진 분석은 AI 서버의 Gemini를, 캐릭터 이미지 생성은 별도 캐릭터 서버를 사용합니다. 사진에서 추출한 견종·색상과 기준 이미지를 바탕으로 생성하며, 업로드한 사진 자체로 개별 반려견을 학습하는 흐름은 아닙니다.
+
+## API
+
+| 서버 | 엔드포인트 | 용도 |
+| --- | --- | --- |
+| AI 서버 | `GET /health` | 프로세스 상태 확인 |
+| AI 서버 | `POST /analyze-mood` | 감정 분류와 본인·가족용 공감 메시지 |
+| AI 서버 | `POST /analyze-pet-photo` | 반려견 사진에서 견종·털 특징 추출 |
+| AI 서버 | `POST /pet-chat` | 성격 답변을 참고한 반려견 대화 |
+| AI 서버 | `POST /insight-chat` | 가족 공유 문맥을 참고한 Ollama 대화 |
+| 캐릭터 서버 | `POST /generate` | 캐릭터 PNG 생성 |
+
+<a id="status"></a>
+## 개발 상태와 인계 사항
+
+- **돌봄 배정은 별도 수정 대상입니다.** PR #31에는 매일 랜덤 배정·한 명에게 여러 행동 배정·직접 Firestore 저장 변경을 포함하지 않았습니다. 현재 main은 기존 Cloud Functions 호출 방식을 유지하며, 돌봄 상태를 불러오지 못하는 문제는 미해결 상태입니다.
+- 운영 Firebase에는 앞선 작업의 돌봄 규칙이 배포되어 저장소 규칙과 차이가 있습니다. 돌봄 담당자가 규칙과 서비스 구현을 함께 확인해야 합니다. PR #31에서는 Firebase를 재배포하지 않았습니다.
+- 반려견 성격 테스트의 **대화 반영은 포함**되지만, Colab 캐릭터 생성의 새 성격 매핑은 별도 담당자가 작업합니다. 현재 앱의 이미지 생성 요청은 기존 성격 키를 사용합니다.
+- 인사이트에 일기 원문을 전달하지 않는 것과 별개로, 현재 Firestore의 `moods` 읽기 권한은 가족 구성원 단위입니다. 개인 일기의 서버 측 읽기 권한 분리는 후속 검토 사항입니다.
+- 루트 `firebase.json`의 Hosting 경로는 기존 `Frontend/familyapp/build/web`을 가리킵니다. MIRA 웹 배포 시 `Frontend/mira/build/web`에 맞춘 설정 확인이 필요합니다.
+- 초기 기획의 타임캡슐·정원 성장·AI 데일리 질문·정기 감정 리포트는 이 문서에서 현재 통합 앱의 완료 기능으로 표시하지 않습니다.
+
+## 검증
+
+PR #31 기준 Flutter 정적 검사, Flutter 테스트 **21개**, AI 서버 테스트 **13개**, Chrome용 웹 빌드가 통과했습니다. 실제 모델 호출과 배포 환경 연결은 별도 실행 설정이 필요합니다.
+
+```powershell
+# Frontend/mira에서
+flutter analyze --no-pub
+flutter test --no-pub
+flutter build web --no-pub
+
+# Backend/ai-server에서
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
-**4. AI 서버 실행 (KoBERT)**
-
-```bash
-cd ai-server
-pip install -r requirements.txt
-uvicorn api.main:app --reload --port 8000
-```
-
-**5. 환경 변수 설정**
-
-`backend/.env` 파일 생성:
-
-```env
-ANTHROPIC_API_KEY=your_claude_api_key
-OPENAI_API_KEY=your_openai_api_key
-FIREBASE_PROJECT_ID=your_firebase_project_id
-```
-
-`frontend/lib/config.dart`에 Firebase 설정값 입력 (Firebase 콘솔 → 프로젝트 설정에서 확인)
-
----
-
-## 🔌 API 및 외부 연동
-
-<div align="center">
-
-| API | 용도 | 흐름 |
-|:---:|:---|:---|
-| 🤖 **Claude API** | 감정 맞춤 공감 메시지 · 데일리 질문 자동 생성 | Client → Firebase → Claude |
-| 🎨 **DALL·E 3** | 정원 성장 단계별 캐릭터 · 보상 아이템 이미지 동적 생성 | Server → OpenAI API → S3 Storage |
-| 🔔 **Firebase Auth & FCM** | 소셜 로그인(Kakao, Google) · 가족 활동 실시간 푸시 알림 | Trigger → FCM Server → Push Alarm |
-
-</div>
-
----
-
-## 📋 요구사항
-
-<div align="center">
-
-### 기능 요구사항 (SRS-FR)
-
-| ID | 기능 | 중요도 | 난이도 | 수용 기준 |
-|:---:|:---|:---:|:---:|:---|
-| FR-001 | 홈화면 | 높음 | 상 | 분석 정확도 90%, 표시 5초 이내 |
-| FR-002 | 감정 기록 | 높음 | 상 | 등록 완료 10초 이내 |
-| FR-003 | 감정 분석 (KoBERT) | 높음 | 상 | 분석 5초 이내, F1-Score ≥ 0.80 |
-| FR-004 | AI 질문 생성 (Claude) | 높음 | 상 | 생성 10초 이내, 일 1회 이상 |
-| FR-005 | 공유 캘린더 | 높음 | 중 | 입력 완료 10초 이내 |
-| FR-006 | 캐릭터 성장 | 보통 | 중 | 활동 반영 1분 이내 |
-| FR-007 | 타임캡슐 | 보통 | 중 | 조회 5초 이내 |
-| FR-008 | 계정 관리 | 보통 | 하 | 로그인 3초 이내, 중복 차단 |
-
-### 비기능 요구사항 (SRS-NFR)
-
-| ID | 항목 | 목표 | 중요도 |
-|:---:|:---|:---:|:---:|
-| NFR-001 | 응답 성능 | 감정 분석 **5초** 이내 | 높음 |
-| NFR-002 | 서버 가용성 | **99.5%** 이상 (Firebase 기반) | 높음 |
-| NFR-003 | 보안성 | AES256 암호화 · 개인정보 비식별화 | 보통 |
-| NFR-004 | 사용성 | 핵심 기능 **3회 클릭** 이내 접근 | 보통 |
-| NFR-005 | 확장성 | 동시 사용자 **100명** 이상 처리 | 보통 |
-| NFR-006 | AI 정확도 | KoBERT F1-Score **0.80** 이상 | 높음 |
-
-</div>
-
----
-
-## 🛠️ 기술 스택
-
-<div align="center">
-
-### 📱 Frontend
-![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat-square&logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-0175C2?style=flat-square&logo=dart&logoColor=white)
-![Provider](https://img.shields.io/badge/Provider/Riverpod-764abc?style=flat-square)
-
-### 🖥️ Backend & Server
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white)
-![FastAPI](https://img.shields.io/badge/Python_FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase_Functions-FFCA28?style=flat-square&logo=firebase&logoColor=black)
-![Docker](https://img.shields.io/badge/Docker_GPU_Server-2496ED?style=flat-square&logo=docker&logoColor=white)
-
-### 🗄️ DB & Storage
-![Firestore](https://img.shields.io/badge/Cloud_Firestore-FF6F00?style=flat-square&logo=firebase&logoColor=white)
-![Firebase Realtime](https://img.shields.io/badge/Firebase_Realtime_DB-FFA000?style=flat-square&logo=firebase&logoColor=white)
-![Firebase Storage](https://img.shields.io/badge/Firebase_Storage-FFCA28?style=flat-square&logo=firebase&logoColor=black)
-
-### 🤖 AI / ML
-![KoBERT](https://img.shields.io/badge/KoBERT-FFD21E?style=flat-square&logo=huggingface&logoColor=black)
-![Claude](https://img.shields.io/badge/Claude_API-D97706?style=flat-square&logo=anthropic&logoColor=white)
-![DALL·E](https://img.shields.io/badge/DALL·E_3-412991?style=flat-square&logo=openai&logoColor=white)
-![AI Hub](https://img.shields.io/badge/AI_Hub_Dataset-0052CC?style=flat-square)
-
-### 🔧 DevOps & Tools
-![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)
-![Codemagic](https://img.shields.io/badge/Codemagic-F45E3F?style=flat-square&logo=codemagic&logoColor=white)
-![Figma](https://img.shields.io/badge/Figma-F24E1E?style=flat-square&logo=figma&logoColor=white)
-![Notion](https://img.shields.io/badge/Notion-000000?style=flat-square&logo=notion&logoColor=white)
-![Cursor](https://img.shields.io/badge/Cursor_IDE-000000?style=flat-square)
-
-</div>
-
----
-
-## 🌟 기존 서비스와의 차별점
-
-<div align="center">
-
-|  | Between | Slowly | Sumone | **AI Family ✨** |
-|:---:|:---:|:---:|:---:|:---:|
-| **주요 타깃** | 커플/가족 | 개인(펜팔) | 커플 | **가족 전체** |
-| **감정 분석** | ✗ | ✗ | ✗ | **✅ KoBERT** |
-| **대화 유도** | 일정 중심 | 편지 형식 | 질문 기반 | **🤖 Claude AI 맞춤 질문** |
-| **게이미피케이션** | ✗ | ✗ | 캐릭터 성장 | **🌿 공유 정원 성장** |
-| **감정 리포트** | ✗ | ✗ | ✗ | **📊 주간·월간 분석** |
-
-</div>
-
-**3가지 핵심 차별 포인트:**
-
-**👨‍👩‍👧 가족 중심 구조** — 커플 위주 기존 앱과 달리 다자간 소통이 가능한 가족 최적화 인터페이스
-
-**❤️ AI 정서 교류** — 단순 메신저를 넘어 AI가 감정을 분석하고 공감 메시지를 생성하여 깊은 유대감 형성
-
-**🔄 지속적 상호작용** — 정원 가꾸기 요소를 통해 가족이 함께 목표를 달성하며 앱 사용의 재미와 지속성 확보
-
----
+Windows의 한글 경로에서 Flutter 엔진·셰이더 오류가 발생하면 SDK·프로젝트의 영문 드라이브 별칭과 영문 `TEMP`/`TMP` 경로를 사용하는 개발 환경 구성을 확인하세요.
 
 <a id="team"></a>
 ## 👥 팀 구성
@@ -395,35 +208,6 @@ FIREBASE_PROJECT_ID=your_firebase_project_id
 
 </div>
 
----
+## 라이선스
 
-## 📁 레포지토리 구조
-
-```
-capstone-project/
-├── 📱 frontend/            # Flutter 모바일 앱
-│   └── lib/
-│       ├── screens/        # 화면 구성 (홈, 감정일기, 캘린더, 정원...)
-│       ├── widgets/        # UI 컴포넌트
-│       └── services/       # API 연동
-├── 🖥️ backend/             # Node.js + Firebase Functions
-│   ├── functions/
-│   └── firestore.rules
-├── 🤖 ai-server/           # Python + KoBERT 감정 분석
-│   ├── model/              # KoBERT 파인튜닝 모델
-│   ├── train/              # 학습 파이프라인
-│   └── api/                # FastAPI 추론 서버
-└── 📄 docs/                # 기획서, 다이어그램, 회의록
-```
-
----
-
-<div align="center">
-
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer" width="100%"/>
-
-**팀 에이원하조 A1HaJo** · AI 캡스톤 디자인 2026 · 동양미래대학교
-
-*🌱 가족의 감정을 잇는 AI, AI Family*
-
-</div>
+[MIT License](LICENSE)
