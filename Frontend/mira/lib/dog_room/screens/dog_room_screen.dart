@@ -11,9 +11,17 @@ import '../widgets/feeding_dog.dart';
 import '../widgets/tail_wagging_dog.dart';
 
 class DogRoomScreen extends StatefulWidget {
-  const DogRoomScreen({super.key, required this.controller, this.onCareAction});
+  const DogRoomScreen({
+    super.key,
+    required this.controller,
+    this.onCareAction,
+    this.careMessage,
+    this.onTalk,
+  });
   final DogController controller;
   final ValueChanged<CareAction>? onCareAction;
+  final String? careMessage;
+  final VoidCallback? onTalk;
 
   @override
   State<DogRoomScreen> createState() => _DogRoomScreenState();
@@ -762,12 +770,15 @@ class _DogRoomScreenState extends State<DogRoomScreen>
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        _waitingForDad
-                                            ? (_greetingDad
-                                                  ? '아빠 왔다! 보고 싶었어 ♥'
-                                                  : '아빠 언제 와? 여기서 기다릴래…')
-                                            : _specialSpeech ??
-                                                  widget.controller.message,
+                                        widget.careMessage ??
+                                            (_waitingForDad
+                                                ? (_greetingDad
+                                                      ? '아빠 왔다! 보고 싶었어 ♥'
+                                                      : '아빠 언제 와? 여기서 기다릴래…')
+                                                : _specialSpeech ??
+                                                      widget
+                                                          .controller
+                                                          .message),
                                         textAlign: TextAlign.center,
                                         style: const TextStyle(
                                           color: Color(0xFF665345),
@@ -785,9 +796,10 @@ class _DogRoomScreenState extends State<DogRoomScreen>
                                   height: 48,
                                   child: IconButton.filledTonal(
                                     key: const ValueKey('dog-speech-toggle'),
-                                    tooltip: '강아지의 이야기 듣기',
-                                    onPressed: () =>
-                                        _showSpeech(_specialSpeech),
+                                    tooltip: '강아지와 대화하기',
+                                    onPressed:
+                                        widget.onTalk ??
+                                        () => _showSpeech(_specialSpeech),
                                     icon: const Icon(
                                       Icons.priority_high_rounded,
                                       size: 22,
@@ -809,6 +821,12 @@ class _DogRoomScreenState extends State<DogRoomScreen>
                 },
               ),
             ),
+            if (widget.onTalk != null)
+              TextButton.icon(
+                onPressed: widget.onTalk,
+                icon: const Icon(Icons.chat_bubble_outline),
+                label: const Text('강아지와 대화하기'),
+              ),
             CareActionBar(
               onAction: _performCare,
               enabled:

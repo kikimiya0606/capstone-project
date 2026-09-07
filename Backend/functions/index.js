@@ -1,8 +1,10 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
+const { FieldValue } = require('firebase-admin/firestore');
 
 admin.initializeApp();
 const db = admin.firestore();
+Object.assign(exports, require('./care-functions'));
 
 const ROLES = ["아빠", "엄마", "아들", "딸"];
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 헷갈리는 0/O, 1/I 제외
@@ -46,7 +48,7 @@ exports.createFamily = onCall(async (request) => {
   await db.runTransaction(async (tx) => {
     tx.set(familyRef, {
       members: { [uid]: role },
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
     tx.set(
       db.collection("users").doc(uid),

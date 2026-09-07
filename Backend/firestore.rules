@@ -99,13 +99,9 @@ service cloud.firestore {
       }
 
       match /dailyCare/{dateId} {
-        // 문서는 uid를 키로 하는 맵 - 본인 uid 항목만 쓰거나 바꿀 수 있음
+        // 배정/완료는 인증과 가족 소속을 검사하는 Cloud Functions에서만 변경.
         allow read: if isFamilyMember(familyId);
-        allow create: if isFamilyMember(familyId) &&
-          request.resource.data.keys().hasOnly([request.auth.uid]);
-        allow update: if isFamilyMember(familyId) &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly([request.auth.uid]);
-        allow delete: if false;
+        allow write: if false;
       }
 
       match /moments/{momentId} {

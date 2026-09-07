@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
 // 로컬 개발용 ai-server 주소. 실기기(Android 에뮬레이터 등)에서 테스트할 땐 값이 달라질 수 있음.
-const _aiServerBaseUrl = 'http://localhost:8000';
+const _aiServerBaseUrl = String.fromEnvironment(
+  'AI_SERVER_BASE_URL',
+  defaultValue: 'http://localhost:8000',
+);
 
 class AiServerException implements Exception {
   AiServerException(this.message);
@@ -37,6 +41,49 @@ class AiServerService {
   AiServerService._();
   static final instance = AiServerService._();
 
+  Future<String> chatWithPet({
+    required String message,
+    required String careContext,
+    required List<Map<String, String>> history,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_aiServerBaseUrl/pet-chat'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'message': message,
+              'care_context': careContext,
+              'history': history,
+            }),
+          )
+          .timeout(const Duration(seconds: 90));
+      if (response.statusCode != 200) {
+        throw AiServerException(switch (response.statusCode) {
+          429 => 'AI 요청 한도에 도달했어요. 잠시 후 다시 시도해주세요.',
+          503 => 'AI 서버의 키 설정이 필요해요.',
+          502 => 'AI 제공자의 답변을 받지 못했어요. 서버 설정을 확인해주세요.',
+          _ => '대화 요청이 실패했어요. (HTTP ${response.statusCode})',
+        });
+      }
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      if (data is! Map ||
+          data['reply'] is! String ||
+          (data['reply'] as String).trim().isEmpty) {
+        throw const FormatException('Invalid pet reply');
+      }
+      return data['reply'] as String;
+    } on TimeoutException {
+      throw AiServerException('AI 답변이 90초 안에 도착하지 않았어요. 잠시 후 다시 보내주세요.');
+    } on FormatException {
+      throw AiServerException('서버 답변 형식이 올바르지 않아요. AI 서버 버전을 확인해주세요.');
+    } on AiServerException {
+      rethrow;
+    } catch (_) {
+      throw AiServerException('강아지 대화 서버에 연결하지 못했어요.');
+    }
+  }
+
   /// 오늘의 감정 한 줄 기록을 kobert로 분석하고, 본인용/가족용 공감 메시지를 생성한다.
   /// family_message는 일기 원문을 그대로 노출하지 않고 요약해서 전달하도록 서버에서 만들어준다.
   Future<MoodAnalysisResult> analyzeMood({
@@ -67,7 +114,9 @@ class AiServerService {
     if (response.statusCode != 200) {
       String detail;
       try {
-        detail = (jsonDecode(response.body) as Map)['detail'] as String? ?? response.body;
+        detail =
+            (jsonDecode(response.body) as Map)['detail'] as String? ??
+            response.body;
       } catch (_) {
         detail = response.body;
       }
@@ -87,7 +136,11 @@ class AiServerService {
     final request = http.MultipartRequest('POST', uri);
     for (var i = 0; i < images.length; i++) {
       request.files.add(
-        http.MultipartFile.fromBytes('images', images[i], filename: 'photo_$i.jpg'),
+        http.MultipartFile.fromBytes(
+          'images',
+          images[i],
+          filename: 'photo_$i.jpg',
+        ),
       );
     }
 
@@ -97,7 +150,9 @@ class AiServerService {
     if (response.statusCode != 200) {
       String detail;
       try {
-        detail = (jsonDecode(response.body) as Map)['detail'] as String? ?? response.body;
+        detail =
+            (jsonDecode(response.body) as Map)['detail'] as String? ??
+            response.body;
       } catch (_) {
         detail = response.body;
       }
