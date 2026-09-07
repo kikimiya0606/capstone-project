@@ -235,8 +235,15 @@ DEFAULT_PERSONALITY = "활발함"
 # baby_idle.png를 기준으로 시작해서 텍스트로 품종/색상/성격만 바꾸는 img2img 강도.
 # 0.68+ : 형태가 쉽게 깨짐 (색 이상해지거나 기형으로 나옴)
 # 0.5 이하: 원본(흰 포메라니안)에서 거의 안 벗어남
-# 0.6이 여러 견종으로 테스트했을 때 가장 안정적이었다.
+# 0.6이 여러 견종으로 테스트했을 때 가장 안정적이었다 - 다만 strength만으로는 색상/견종이
+# 아예 안 바뀔 때가 있어서(원본이 흰 포메라니안이라 그쪽으로 계속 끌림), GUIDANCE_SCALE로
+# 텍스트 프롬프트 반영 강도를 별도로 더 올려서 보완한다.
 IMG2IMG_STRENGTH = 0.6
+
+# 텍스트 프롬프트를 얼마나 강하게 따를지 (strength와는 별개 축). 기본값 7.5는 색상/견종이
+# 원본(흰 포메라니안) 쪽으로 계속 끌리는 경우가 있어서 더 올렸다 - strength를 올리는 것과
+# 달리 형태가 깨지는 부작용 없이 프롬프트 반영을 강화하는 쪽이라 우선 이걸로 시도한다.
+GUIDANCE_SCALE = 11.0
 
 
 def _lookup(value: str, table: dict, default_key: str) -> str:
@@ -317,7 +324,7 @@ def generate():
         negative_prompt=negative_prompt,
         image=ref_image,
         strength=IMG2IMG_STRENGTH,
-        guidance_scale=7.5,
+        guidance_scale=GUIDANCE_SCALE,
         generator=generator,
     ).images[0]
 

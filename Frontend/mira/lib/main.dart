@@ -1022,21 +1022,24 @@ class _PetSetupState extends State<PetSetup> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(
-              value: true,
-              label: Text('사진으로 만들기'),
-              icon: Icon(CupertinoIcons.sparkles),
-            ),
-            ButtonSegment(
-              value: false,
-              label: Text('직접 꾸미기'),
-              icon: Icon(CupertinoIcons.slider_horizontal_3),
-            ),
-          ],
-          selected: {photo},
-          onSelectionChanged: (v) => setState(() => photo = v.first),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment(
+                value: true,
+                label: Text('사진으로 만들기'),
+                icon: Icon(CupertinoIcons.sparkles),
+              ),
+              ButtonSegment(
+                value: false,
+                label: Text('직접 꾸미기'),
+                icon: Icon(CupertinoIcons.slider_horizontal_3),
+              ),
+            ],
+            selected: {photo},
+            onSelectionChanged: (v) => setState(() => photo = v.first),
+          ),
         ),
         const SizedBox(height: 18),
         if (photo) ...[
