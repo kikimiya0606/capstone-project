@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mira/main.dart';
 import 'package:mira/dog_room/controllers/dog_controller.dart';
 import 'package:mira/dog_room/models/dog_state.dart';
+import 'package:mira/dog_room/models/care_reminder.dart';
+import 'package:mira/services/daily_care_service.dart';
 import 'package:mira/dog_room/screens/dog_room_screen.dart';
 import 'package:mira/dog_room/services/dog_save_service.dart';
 import 'package:mira/memories/memory_page.dart';
@@ -226,6 +228,37 @@ void main() {
     await capture(tester, 'pet-large-text');
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
+    dog.dispose();
+  });
+
+  testWidgets('설정 이름과 성장 단계, 실제 담당자의 기다리기를 표시한다', (tester) async {
+    await phone(tester);
+    final dog = DogController(_DogStorage());
+    Widget room(CareReminder? reminder) => MaterialApp(
+      home: DogRoomScreen(
+        controller: dog,
+        petName: '콩이',
+        careReminder: reminder,
+      ),
+    );
+    await tester.pumpWidget(
+      room(CareReminder('mom', '엄마', careActions[1], 'today')),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('콩이의 방'), findsOneWidget);
+    expect(find.text('아기'), findsOneWidget);
+    expect(find.textContaining('Lv.'), findsNothing);
+    expect(find.text('아빠 기다리기'), findsNothing);
+    await tester.tap(find.text('엄마 기다리기'));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('엄마 씻고 싶어요!'), findsOneWidget);
+    expect(find.byKey(const ValueKey('entrance-background')), findsOneWidget);
+    await tester.pumpWidget(room(null));
+    await tester.pump();
+    expect(find.text('엄마 기다리기'), findsNothing);
+    expect(find.text('엄마 씻고 싶어요!'), findsNothing);
+    expect(find.byKey(const ValueKey('room-background')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
     dog.dispose();
   });
 

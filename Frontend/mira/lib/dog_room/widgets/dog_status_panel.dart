@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/dog_state.dart';
 
 class DogStatusPanel extends StatelessWidget {
-  const DogStatusPanel({super.key, required this.state});
+  const DogStatusPanel({super.key, required this.state, this.petName = '강아지'});
   final DogState state;
+  final String petName;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -15,14 +16,17 @@ class DogStatusPanel extends StatelessWidget {
           children: [
             const Icon(CupertinoIcons.paw, color: Color(0xFF315E50), size: 20),
             const SizedBox(width: 8),
-            const Expanded(
+            Expanded(
               child: Text(
-                '보리의 방',
-                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+                '$petName의 방',
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             Text(
-              'Lv.${state.level} · ${state.stage.label}',
+              state.stage.label,
               style: const TextStyle(
                 fontSize: 13,
                 color: Color(0xFF68766D),
