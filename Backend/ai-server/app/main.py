@@ -7,6 +7,9 @@ from .config import get_settings
 from .emotion_model import get_classifier
 from .schemas import MoodAnalysisRequest, MoodAnalysisResponse, PetPhotoAnalysisResponse
 from .schemas import PetChatRequest, PetChatResponse
+from .schemas import InsightChatRequest
+from . import ollama_service
+import httpx
 
 app = FastAPI(title="AI Family Emotion Server")
 
@@ -28,13 +31,28 @@ def pet_chat(req: PetChatRequest) -> PetChatResponse:
     if not get_settings().gemini_api_key:
         raise HTTPException(status_code=503, detail='AI 대화가 아직 설정되지 않았어요.')
     try:
-        reply = gemini_service.generate_pet_reply(req.message, req.care_context, req.history)
+        reply = gemini_service.generate_pet_reply(req.message, req.care_context, req.history,
+                                                  req.pet_name, req.personality_answers)
     except genai_errors.APIError as exc:
         code = 429 if exc.code == 429 else 502
         raise HTTPException(status_code=code, detail='잠시 후 다시 말 걸어주세요.') from exc
     except (ValueError, TimeoutError) as exc:
         raise HTTPException(status_code=502, detail='답변을 받지 못했어요. 다시 시도해주세요.') from exc
     return PetChatResponse(reply=reply)
+
+
+@app.post('/insight-chat', response_model=PetChatResponse)
+async def insight_chat(req: InsightChatRequest) -> PetChatResponse:
+    try:
+        return PetChatResponse(reply=await ollama_service.chat(req.message, req.family_context, req.history))
+    except httpx.TimeoutException as exc:
+        raise HTTPException(status_code=504, detail='답변 준비가 오래 걸려요. 잠시 후 다시 보내주세요.') from exc
+    except httpx.ConnectError as exc:
+        raise HTTPException(status_code=503, detail='인사이트 대화 서버가 아직 준비되지 않았어요.') from exc
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=502, detail='인사이트 모델 설정을 확인해주세요.') from exc
+    except (ValueError, httpx.RequestError) as exc:
+        raise HTTPException(status_code=502, detail='인사이트 답변을 받지 못했어요.') from exc
 
 
 @app.post("/analyze-mood", response_model=MoodAnalysisResponse)

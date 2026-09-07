@@ -1,0 +1,5 @@
+# Local workaround for Flutter 3.41 / Dart 3.11.
+# firebase_core_web 3.11.0 uses an interop API requiring Dart 3.12.
+# Remove when Flutter is upgraded to a compatible version.
+dependency_overrides:
+  firebase_core_web: 3.10.0

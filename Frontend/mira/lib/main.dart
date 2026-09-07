@@ -1,4 +1,8 @@
 import 'dart:convert';
+import 'dart:async';
+import 'services/family_activity.dart';
+import 'dog_room/models/pet_personality.dart';
+import 'dog_room/widgets/pet_personality_quiz.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -27,6 +31,10 @@ import 'services/moment_service.dart';
 import 'services/notification_service.dart';
 import 'services/pet_service.dart';
 import 'widgets/author_avatar.dart';
+import 'widgets/word_wrap_text.dart';
+
+part 'family_activity_ui.dart';
+part 'moment_editor.dart';
 
 const textScaleKey = 'text_scale_v1';
 final textScaleNotifier = ValueNotifier<double>(1.0);
@@ -35,12 +43,21 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     const useEmulators = bool.fromEnvironment('USE_FIREBASE_EMULATORS');
-    await Firebase.initializeApp(options: useEmulators
-        ? const FirebaseOptions(apiKey: 'demo-api-key', appId: '1:123:web:demo',
-            messagingSenderId: '123', projectId: 'demo-mira-care')
-        : DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: useEmulators
+          ? const FirebaseOptions(
+              apiKey: 'demo-api-key',
+              appId: '1:123:web:demo',
+              messagingSenderId: '123',
+              projectId: 'demo-mira-care',
+            )
+          : DefaultFirebaseOptions.currentPlatform,
+    );
     if (useEmulators) {
-      const host = String.fromEnvironment('FIREBASE_EMULATOR_HOST', defaultValue: '127.0.0.1');
+      const host = String.fromEnvironment(
+        'FIREBASE_EMULATOR_HOST',
+        defaultValue: '127.0.0.1',
+      );
       await FirebaseAuth.instance.useAuthEmulator(host, 9099);
       FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
       FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
@@ -56,6 +73,7 @@ Future<void> main() async {
   }
   runApp(const MiraApp());
 }
+
 const ink = Color(0xFF263E34),
     violet = Color(0xFF315E50),
     cream = Color(0xFFF7F8F3);
@@ -159,7 +177,9 @@ class MiraApp extends StatelessWidget {
     builder: (context, child) => ValueListenableBuilder<double>(
       valueListenable: textScaleNotifier,
       builder: (context, scale, _) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(scale)),
         child: ColoredBox(
           color: const Color(0xFFE9EEE7),
           child: Center(
@@ -258,8 +278,8 @@ class _OnboardingState extends State<Onboarding> {
 
   final data = const [
     (
-      '가족의 하루가\n하나의 이야기가 되도록',
-      '감정과 일상, 함께한 순간을 MIRA가 다정하게 이어드려요.',
+      '함께한 순간이 서로의 마음에 오래 울리도록',
+      'MIRA는 Moments In Resonance, Always의 약자예요. 가족의 일상과 감정을 다정하게 이어드려요.',
       CupertinoIcons.heart_fill,
       Color(0xFFFFD7CF),
     ),
@@ -308,7 +328,12 @@ class _OnboardingState extends State<Onboarding> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Moments In Resonance, Always',
+                    style: TextStyle(fontSize: 12, color: violet),
+                  ),
+                  const SizedBox(height: 24),
                   Container(
                     height: 260,
                     decoration: BoxDecoration(
@@ -346,7 +371,7 @@ class _OnboardingState extends State<Onboarding> {
                     ),
                   ),
                   const SizedBox(height: 38),
-                  Text(
+                  WordWrapText(
                     d.$1,
                     style: const TextStyle(
                       fontSize: 30,
@@ -356,7 +381,7 @@ class _OnboardingState extends State<Onboarding> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  WordWrapText(
                     d.$2,
                     style: const TextStyle(
                       fontSize: 16,
@@ -601,7 +626,7 @@ class SetupFrame extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            Text(
+            WordWrapText(
               title,
               style: const TextStyle(
                 fontSize: 32,
@@ -724,9 +749,7 @@ class _ProfileSetupState extends State<ProfileSetup> {
           children: familyRoles
               .map(
                 (e) => ChoiceChip(
-                  avatar: Text(
-                    _roleEmoji[e]!,
-                  ),
+                  avatar: const Icon(Icons.person_rounded, size: 20),
                   label: Text(e),
                   selected: role == e,
                   onSelected: (_) => setState(() => role = e),
@@ -737,7 +760,10 @@ class _ProfileSetupState extends State<ProfileSetup> {
         const SizedBox(height: 20),
         TextField(
           controller: _nameController,
-          decoration: const InputDecoration(labelText: '이름', hintText: '이름을 입력하세요'),
+          decoration: const InputDecoration(
+            labelText: '이름',
+            hintText: '이름을 입력하세요',
+          ),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -774,7 +800,10 @@ class _ProfileSetupState extends State<ProfileSetup> {
         const SizedBox(height: 24),
         const Divider(),
         const SizedBox(height: 16),
-        const Text('이미 가족 코드가 있으신가요?', style: TextStyle(fontWeight: FontWeight.w700)),
+        const Text(
+          '이미 가족 코드가 있으신가요?',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 10),
         TextField(
           controller: _inviteCodeController,
@@ -815,6 +844,7 @@ class PetSetup extends StatefulWidget {
 class _PetSetupState extends State<PetSetup> {
   bool photo = true;
   String personality = '활발함';
+  PetPersonality? _personalityProfile;
   final _breedController = TextEditingController();
   final _colorController = TextEditingController();
   final _nameController = TextEditingController();
@@ -847,7 +877,9 @@ class _PetSetupState extends State<PetSetup> {
       return;
     }
     final familyId = await FamilyService.instance.fetchMyFamilyId(uid);
-    final pet = familyId == null ? null : await PetService.instance.fetchPet(familyId);
+    final pet = familyId == null
+        ? null
+        : await PetService.instance.fetchPet(familyId);
     if (!mounted) return;
     setState(() {
       _familyId = familyId;
@@ -859,6 +891,9 @@ class _PetSetupState extends State<PetSetup> {
         _breedController.text = pet['breed'] as String? ?? '';
         _colorController.text = pet['colorDescription'] as String? ?? '';
         personality = pet['personality'] as String? ?? personality;
+        _personalityProfile = PetPersonality.fromJson(
+          pet['personalityProfile'],
+        );
       }
     });
   }
@@ -901,6 +936,10 @@ class _PetSetupState extends State<PetSetup> {
   }
 
   Future<void> _handleSubmit() async {
+    if (_personalityProfile == null) {
+      setState(() => _saveError = '네 문항의 성격 테스트를 먼저 완료해주세요.');
+      return;
+    }
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || _familyId == null) {
       widget.onDone();
@@ -918,6 +957,7 @@ class _PetSetupState extends State<PetSetup> {
         breed: _breedController.text.trim(),
         colorDescription: _colorController.text.trim(),
         personality: personality,
+        personalityProfile: _personalityProfile?.toJson(),
       );
       final image = _characterImage;
       if (image != null) {
@@ -934,7 +974,9 @@ class _PetSetupState extends State<PetSetup> {
   Future<void> _pickPhotos() async {
     final picked = await _picker.pickMultiImage(imageQuality: 80, limit: 5);
     if (picked.isEmpty) return;
-    final bytesList = await Future.wait(picked.map((file) => file.readAsBytes()));
+    final bytesList = await Future.wait(
+      picked.map((file) => file.readAsBytes()),
+    );
     setState(() {
       _photoBytes
         ..clear()
@@ -950,7 +992,9 @@ class _PetSetupState extends State<PetSetup> {
       _analysisError = null;
     });
     try {
-      final result = await AiServerService.instance.analyzePetPhotos(_photoBytes);
+      final result = await AiServerService.instance.analyzePetPhotos(
+        _photoBytes,
+      );
       setState(() {
         _breedController.text = result.breed;
         _colorController.text = result.colorDescription;
@@ -958,7 +1002,9 @@ class _PetSetupState extends State<PetSetup> {
     } on AiServerException catch (e) {
       setState(() => _analysisError = e.message);
     } catch (_) {
-      setState(() => _analysisError = 'AI 서버에 연결하지 못했어요. ai-server가 실행 중인지 확인해주세요.');
+      setState(
+        () => _analysisError = 'AI 서버에 연결하지 못했어요. ai-server가 실행 중인지 확인해주세요.',
+      );
     } finally {
       if (mounted) setState(() => _analyzing = false);
     }
@@ -1044,9 +1090,14 @@ class _PetSetupState extends State<PetSetup> {
                             height: 72,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: violet.withValues(alpha: .4)),
+                              border: Border.all(
+                                color: violet.withValues(alpha: .4),
+                              ),
                             ),
-                            child: const Icon(CupertinoIcons.pencil, color: violet),
+                            child: const Icon(
+                              CupertinoIcons.pencil,
+                              color: violet,
+                            ),
                           ),
                         ),
                       ],
@@ -1072,7 +1123,10 @@ class _PetSetupState extends State<PetSetup> {
           ],
           if (_analysisError != null) ...[
             const SizedBox(height: 8),
-            Text(_analysisError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+            Text(
+              _analysisError!,
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+            ),
           ],
           if (_breedController.text.isNotEmpty) ...[
             const SizedBox(height: 14),
@@ -1086,32 +1140,56 @@ class _PetSetupState extends State<PetSetup> {
             children: [
               TextField(
                 controller: _breedController,
-                decoration: const InputDecoration(labelText: '견종', hintText: '토이 푸들'),
+                decoration: const InputDecoration(labelText: '견종'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _colorController,
-                decoration: const InputDecoration(
-                  labelText: '털 색상과 특징',
-                  hintText: '크림색 · 곱슬',
-                ),
+                decoration: const InputDecoration(labelText: '털 색상과 특징'),
               ),
             ],
           ),
         const SizedBox(height: 22),
-        const Text('성격', style: TextStyle(fontWeight: FontWeight.w600)),
+        const Text('우리 아이 성격', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        const Text(
+          '짧은 네 가지 질문으로 평소 모습을 알려주세요. 대화 말투에 반영돼요.',
+          style: TextStyle(fontSize: 12, color: Colors.black54),
+        ),
+        if (_personalityProfile != null) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: _personalityProfile!.labels
+                .map((label) => Chip(label: Text(label)))
+                .toList(),
+          ),
+        ],
         const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          children: ['활발함', '애교쟁이', '호기심', '차분함']
-              .map(
-                (e) => ChoiceChip(
-                  label: Text(e),
-                  selected: personality == e,
-                  onSelected: (_) => setState(() => personality = e),
-                ),
-              )
-              .toList(),
+        OutlinedButton.icon(
+          icon: const Icon(CupertinoIcons.paw),
+          label: Text(
+            _personalityProfile == null ? '성격 테스트 시작 · 4문항' : '성격 테스트 다시 하기',
+          ),
+          onPressed: _saving
+              ? null
+              : () async {
+                  final result = await showModalBottomSheet<PetPersonality>(
+                    context: context,
+                    isScrollControlled: true,
+                    showDragHandle: true,
+                    builder: (_) =>
+                        PetPersonalityQuiz(initial: _personalityProfile),
+                  );
+                  if (result != null && mounted) {
+                    setState(() {
+                      _personalityProfile = result;
+                      personality = result.legacyStyle;
+                      _saveError = null;
+                    });
+                  }
+                },
         ),
         const SizedBox(height: 22),
         const Text('AI 캐릭터', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -1132,7 +1210,10 @@ class _PetSetupState extends State<PetSetup> {
           ),
         if (_characterError != null) ...[
           const SizedBox(height: 8),
-          Text(_characterError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+          Text(
+            _characterError!,
+            style: const TextStyle(color: Colors.red, fontSize: 12),
+          ),
         ],
         const SizedBox(height: 10),
         SizedBox(
@@ -1160,7 +1241,7 @@ class _PetSetupState extends State<PetSetup> {
         const SizedBox(height: 18),
         TextField(
           controller: _nameController,
-          decoration: const InputDecoration(labelText: '이름', hintText: '보리'),
+          decoration: const InputDecoration(labelText: '이름'),
         ),
         if (_saveError != null) ...[
           const SizedBox(height: 12),
@@ -1194,6 +1275,15 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int index = 0;
+  final _familyPageKey = GlobalKey<_FamilyPageState>();
+
+  void _openStoryQuest() {
+    setState(() => index = 2);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _familyPageKey.currentState?._write(context);
+    });
+  }
+
   late final DogController dog = DogController(
     SharedPreferencesDogSaveService(),
   );
@@ -1254,9 +1344,11 @@ class _MainShellState extends State<MainShell> {
         dog: dog,
         active: index == 0,
         onOpenPet: () => setState(() => index = 1),
+        onOpenFamily: _openStoryQuest,
+        onOpenPhotos: () => setState(() => index = 3),
       ),
       index == 1 ? PetPage(controller: dog) : const SizedBox.shrink(),
-      const FamilyPage(),
+      FamilyPage(key: _familyPageKey),
       MemoryPage(active: index == 3),
       const AiPage(),
       SettingsPage(onClearData: _clearData),
@@ -1300,7 +1392,10 @@ class _MainShellState extends State<MainShell> {
       title: const Text('오늘의 돌봄 현황'),
       content: const SizedBox(width: 320, child: _FamilyCareSection()),
       actions: [
-        FilledButton(onPressed: () => Navigator.pop(c), child: const Text('닫기')),
+        FilledButton(
+          onPressed: () => Navigator.pop(c),
+          child: const Text('닫기'),
+        ),
       ],
     ),
   );
@@ -1326,7 +1421,10 @@ class _FamilyCareSection extends StatelessWidget {
           );
         }
         if (familyId == null) {
-          return const Text('아직 가족에 소속되어 있지 않아요.', style: TextStyle(color: Colors.black54));
+          return const Text(
+            '아직 가족에 소속되어 있지 않아요.',
+            style: TextStyle(color: Colors.black54),
+          );
         }
         return StreamBuilder<List<Map<String, dynamic>>>(
           stream: FamilyService.instance.watchFamilyMembers(familyId),
@@ -1340,7 +1438,10 @@ class _FamilyCareSection extends StatelessWidget {
                 }
                 final care = careSnapshot.data ?? const {};
                 if (members.isEmpty) {
-                  return const Text('가족 구성원이 없어요.', style: TextStyle(color: Colors.black54));
+                  return const Text(
+                    '가족 구성원이 없어요.',
+                    style: TextStyle(color: Colors.black54),
+                  );
                 }
                 final doneCount = members.where((m) {
                   final record = care[m['uid']] as Map<String, dynamic>?;
@@ -1378,12 +1479,14 @@ class _FamilyCareSection extends StatelessWidget {
                           builder: (context) {
                             final uid = member['uid'] as String;
                             final name = member['name'] as String? ?? '이름 없음';
-                            final role = member['role'] as String?;
                             final record = care[uid] as Map<String, dynamic>?;
-                            final avatar = _roleEmoji[role] ?? '👤';
+                            const avatar = '●';
                             final isDone = record?['completedAt'] != null;
                             if (isDone) {
-                              return CareLine('$avatar $name', '${record!['action']} · 완료');
+                              return CareLine(
+                                '$avatar $name',
+                                '${record!['action']} · 완료',
+                              );
                             }
                             if (uid == myUid) {
                               return Padding(
@@ -1399,17 +1502,24 @@ class _FamilyCareSection extends StatelessWidget {
                                             ? '$avatar $name · ${record['action']} 하면 완료돼요'
                                             : '$avatar $name',
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontWeight: FontWeight.w700),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
                                     ),
-                                    const Text('자동 배정', style: TextStyle(color: Colors.black54)),
+                                    const Text(
+                                      '자동 배정',
+                                      style: TextStyle(color: Colors.black54),
+                                    ),
                                   ],
                                 ),
                               );
                             }
                             return CareLine(
                               '$avatar $name',
-                              record != null ? '${record['action']} · 진행 중' : '대기',
+                              record != null
+                                  ? '${record['action']} · 진행 중'
+                                  : '대기',
                             );
                           },
                         ),
@@ -1430,13 +1540,16 @@ class AppPage extends StatelessWidget {
     required this.title,
     required this.child,
     this.actions,
+    this.controller,
     super.key,
   });
   final String title;
+  final ScrollController? controller;
   final Widget child;
   final List<Widget>? actions;
   @override
   Widget build(BuildContext context) => CustomScrollView(
+    controller: controller,
     slivers: [
       SliverAppBar(
         floating: true,
@@ -1523,11 +1636,14 @@ class HomePage extends StatelessWidget {
     required this.dog,
     required this.active,
     required this.onOpenPet,
+    required this.onOpenFamily,
+    required this.onOpenPhotos,
     super.key,
   });
   final DogController dog;
   final bool active;
   final VoidCallback onOpenPet;
+  final VoidCallback onOpenFamily, onOpenPhotos;
   final VoidCallback onAttendance;
   final VoidCallback onMoodDiary;
   @override
@@ -1561,7 +1677,7 @@ class HomePage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
+        const WordWrapText(
           '함께라서 좋은 하루예요.',
           style: TextStyle(
             fontSize: 27,
@@ -1607,7 +1723,7 @@ class HomePage extends StatelessWidget {
             onPressed: onAttendance,
             icon: const Icon(CupertinoIcons.sun_max),
             label: const Text(
-              '오늘의 출석 체크  →',
+              '오늘의 돌봄 확인  →',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
             style: FilledButton.styleFrom(
@@ -1620,121 +1736,80 @@ class HomePage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 32),
-        const Section('가족 퀘스트', '오늘 1 / 2'),
-        const SizedBox(height: 12),
-        const QuestCard(
-          icon: '🍽️',
-          title: '저녁 식탁에서 오늘 일 하나씩',
-          detail: '가족 모두 참여 · Family Energy +40',
-          progress: .66,
-          color: Color(0xFFFFE8CF),
-        ),
-        const SizedBox(height: 12),
-        const QuestCard(
-          icon: '📷',
-          title: '우리 가족 오늘 한 컷',
-          detail: '사진 1장을 추억에 남겨 보세요',
-          progress: 0,
-          color: Color(0xFFDDECE3),
-        ),
+        _WeeklyQuests(onStory: onOpenFamily, onPhoto: onOpenPhotos),
         const SizedBox(height: 28),
-        _DailyQuestsSection(onMoodDiary: onMoodDiary),
+        _DailyQuestsSection(
+          onMoodDiary: onMoodDiary,
+          onPet: onOpenPet,
+          onFamily: onOpenFamily,
+        ),
         const SizedBox(height: 28),
         const Section('오늘의 가족 돌봄', ''),
         const SizedBox(height: 12),
         const _FamilyCareSection(),
         const SizedBox(height: 20),
-        const Row(
-          children: [
-            Expanded(child: Metric('☀️', 'Family Mood', '82')),
-            SizedBox(width: 10),
-            Expanded(child: Metric('⚡', 'Family Energy', '680')),
-          ],
-        ),
+        _LiveMetrics(onEmotion: onMoodDiary, onFamily: onOpenFamily),
       ],
     ),
   );
 }
 
 class _DailyQuestsSection extends StatelessWidget {
-  const _DailyQuestsSection({required this.onMoodDiary});
-  final VoidCallback onMoodDiary;
-
+  const _DailyQuestsSection({
+    required this.onMoodDiary,
+    required this.onPet,
+    required this.onFamily,
+  });
+  final VoidCallback onMoodDiary, onPet, onFamily;
   @override
-  Widget build(BuildContext context) {
-    final myUid = currentUidOrNull();
-    if (myUid == null) {
-      return const Text('로그인이 필요해요.', style: TextStyle(color: Colors.black54));
-    }
-    return FutureBuilder<String?>(
-      future: FamilyService.instance.fetchMyFamilyId(myUid),
-      builder: (context, familyIdSnapshot) {
-        final familyId = familyIdSnapshot.data;
-        if (familyId == null) {
-          return const Text('아직 가족에 소속되어 있지 않아요.', style: TextStyle(color: Colors.black54));
-        }
-        return StreamBuilder<Map<String, dynamic>>(
-          stream: DailyCareService.instance.watchToday(familyId),
-          builder: (context, careSnapshot) {
-            if (careSnapshot.hasError) {
-              return const Text('돌봄 배정을 불러오지 못했어요. 잠시 후 다시 확인해주세요.');
-            }
-            final myCareRecord =
-                (careSnapshot.data ?? const {})[myUid] as Map<String, dynamic>?;
-            final cared = myCareRecord?['completedAt'] != null;
-            return StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
-              stream: MomentService.instance.watchMoments(familyId),
-              builder: (context, momentSnapshot) {
-                final docs = momentSnapshot.data ?? const [];
-                final now = DateTime.now();
-                final postedToday = docs.any((doc) {
-                  final data = doc.data();
-                  if (data['authorUid'] != myUid) return false;
-                  final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
-                  return createdAt != null &&
-                      createdAt.year == now.year &&
-                      createdAt.month == now.month &&
-                      createdAt.day == now.day;
-                });
-                final reacted = docs.any((doc) {
-                  final data = doc.data();
-                  final likedBy = List<String>.from(data['likedBy'] as List? ?? const []);
-                  return data['authorUid'] != myUid && likedBy.contains(myUid);
-                });
-                final quests = [
-                  (icon: '🐾', title: '오늘의 강아지 돌봄', done: cared, onTap: null),
-                  (
-                    icon: '✍️',
-                    title: '오늘의 감정 한 줄 기록',
-                    done: postedToday,
-                    onTap: onMoodDiary,
-                  ),
-                  (icon: '💬', title: '가족 일기에 반응 남기기', done: reacted, onTap: null),
-                ];
-                final doneCount = quests.where((q) => q.done).length;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Section('나의 일일 퀘스트', '$doneCount / ${quests.length} 완료'),
-                    const SizedBox(height: 12),
-                    for (final quest in quests) ...[
-                      DailyQuest(
-                        icon: quest.icon,
-                        title: quest.title,
-                        done: quest.done,
-                        onTap: quest.onTap,
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => _ActivityBuilder(
+    builder: (_, data) {
+      final uid = currentUidOrNull();
+      bool today(dynamic value) {
+        final time = activityTime(value);
+        return time != null &&
+            time.year == data.now.year &&
+            time.month == data.now.month &&
+            time.day == data.now.day;
+      }
+
+      final cared = data.care.any(
+        (d) =>
+            d['uid'] == careDate() &&
+            d[uid] is Map &&
+            (d[uid] as Map)['completedAt'] != null,
+      );
+      final posted = data.moments.any(
+        (d) => d['authorUid'] == uid && today(d['createdAt']),
+      );
+      final quests = [
+        (icon: '🐾', title: '오늘의 강아지 돌봄', done: cared, onTap: onPet),
+        (
+          icon: '✍️',
+          title: '나의 오늘 감정 기록',
+          done: data.todayMoods.containsKey(uid),
+          onTap: onMoodDiary,
+        ),
+        (icon: '💬', title: '가족에게 오늘 이야기 나누기', done: posted, onTap: onFamily),
+      ];
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Section('나의 일일 퀘스트', '${quests.where((q) => q.done).length} / 3 완료'),
+          const SizedBox(height: 12),
+          for (final quest in quests) ...[
+            DailyQuest(
+              icon: quest.icon,
+              title: quest.title,
+              done: quest.done,
+              onTap: quest.onTap,
+            ),
+            const SizedBox(height: 8),
+          ],
+        ],
+      );
+    },
+  );
 }
 
 class PetPage extends StatelessWidget {
@@ -1764,8 +1839,6 @@ class FamilyPage extends StatefulWidget {
   State<FamilyPage> createState() => _FamilyPageState();
 }
 
-const _roleEmoji = {'아빠': '👨', '엄마': '👩', '아들': '👦', '딸': '👧'};
-
 class _CareCompletingDogRoom extends StatelessWidget {
   const _CareCompletingDogRoom({required this.controller});
   final DogController controller;
@@ -1773,7 +1846,9 @@ class _CareCompletingDogRoom extends StatelessWidget {
   @override
   Widget build(BuildContext context) => FamilyDogRoom(
     key: ValueKey(currentUidOrNull()),
-    controller: controller, uid: currentUidOrNull());
+    controller: controller,
+    uid: currentUidOrNull(),
+  );
 }
 
 class _FamilyPageState extends State<FamilyPage> {
@@ -1793,31 +1868,11 @@ class _FamilyPageState extends State<FamilyPage> {
         const SizedBox(height: 12),
         const _FamilyMembersSection(),
         const SizedBox(height: 22),
-        const Section('오늘의 가족 마음', ''),
+        const Section('가족 이야기', '가족에게 공유'),
         const SizedBox(height: 12),
         const _MomentsSection(),
         const SizedBox(height: 22),
-        const Section('가족 상호작용', '최근 7일 +18%'),
-        const SizedBox(height: 10),
-        const Card(
-          child: Padding(
-            padding: EdgeInsets.all(18),
-            child: Column(
-              children: [
-                LinearProgressIndicator(
-                  value: .78,
-                  minHeight: 9,
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  '댓글 14 · 좋아요 31 · 함께한 활동 5',
-                  style: TextStyle(color: Colors.black54),
-                ),
-              ],
-            ),
-          ),
-        ),
+        const _LiveInteraction(),
       ],
     ),
   );
@@ -1828,13 +1883,16 @@ class _FamilyPageState extends State<FamilyPage> {
     final familyId = await FamilyService.instance.fetchMyFamilyId(uid);
     if (familyId == null) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('가족에 먼저 참여해주세요.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('가족에 먼저 참여해주세요.')));
       }
       return;
     }
-    final profile = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final profile = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
     final authorName = profile.data()?['name'] as String? ?? '이름 없음';
     final authorRole = profile.data()?['role'] as String? ?? '';
 
@@ -1857,19 +1915,21 @@ class _FamilyPageState extends State<FamilyPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '오늘의 마음 기록',
+              '가족에게 이야기 남기기',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 15),
             TextField(
               controller: moodController,
-              decoration: const InputDecoration(hintText: '오늘 기분을 한 줄로 표현해보세요.'),
+              decoration: const InputDecoration(hintText: '이야기 제목이나 짧은 한마디'),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: bodyController,
               maxLines: 5,
-              decoration: const InputDecoration(hintText: '가족과 나누고 싶은 이야기를 적어보세요.'),
+              decoration: const InputDecoration(
+                hintText: '가족과 나누고 싶은 이야기를 적어보세요.',
+              ),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -1911,60 +1971,80 @@ Future<void> _showCommentsSheet({
     isScrollControlled: true,
     showDragHandle: true,
     builder: (sheetContext) => Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheetContext).bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+      ),
       child: SizedBox(
         height: MediaQuery.sizeOf(sheetContext).height * 0.7,
         child: Column(
           children: [
             const Padding(
               padding: EdgeInsets.only(bottom: 8),
-              child: Text('댓글', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+              child: Text(
+                '댓글',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+              ),
             ),
             Expanded(
-              child: StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
-                stream: MomentService.instance.watchComments(familyId, momentId),
-                initialData: comments,
-                builder: (context, snapshot) {
-                  final docs = snapshot.data ?? const [];
-                  if (docs.isEmpty) {
-                    return const Center(
-                      child: Text('아직 댓글이 없어요.', style: TextStyle(color: Colors.black54)),
-                    );
-                  }
-                  return ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    children: [
-                      for (final doc in docs)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              AuthorAvatar(
-                                uid: doc.data()['authorUid'] as String?,
-                                role: doc.data()['authorRole'] as String?,
-                                radius: 16,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      doc.data()['authorName'] as String? ?? '이름 없음',
-                                      style: const TextStyle(fontWeight: FontWeight.w700),
-                                    ),
-                                    Text(doc.data()['text'] as String? ?? ''),
-                                  ],
-                                ),
-                              ),
-                            ],
+              child:
+                  StreamBuilder<
+                    List<QueryDocumentSnapshot<Map<String, dynamic>>>
+                  >(
+                    stream: MomentService.instance.watchComments(
+                      familyId,
+                      momentId,
+                    ),
+                    initialData: comments,
+                    builder: (context, snapshot) {
+                      final docs = snapshot.data ?? const [];
+                      if (docs.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            '아직 댓글이 없어요.',
+                            style: TextStyle(color: Colors.black54),
                           ),
-                        ),
-                    ],
-                  );
-                },
-              ),
+                        );
+                      }
+                      return ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        children: [
+                          for (final doc in docs)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 14),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  AuthorAvatar(
+                                    uid: doc.data()['authorUid'] as String?,
+                                    role: doc.data()['authorRole'] as String?,
+                                    radius: 16,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          doc.data()['authorName'] as String? ??
+                                              '이름 없음',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        Text(
+                                          doc.data()['text'] as String? ?? '',
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
             ),
             if (uid != null)
               Padding(
@@ -1974,7 +2054,9 @@ Future<void> _showCommentsSheet({
                     Expanded(
                       child: TextField(
                         controller: controller,
-                        decoration: const InputDecoration(hintText: '댓글을 입력하세요'),
+                        decoration: const InputDecoration(
+                          hintText: '댓글을 입력하세요',
+                        ),
                       ),
                     ),
                     IconButton(
@@ -1990,7 +2072,8 @@ Future<void> _showCommentsSheet({
                           familyId: familyId,
                           momentId: momentId,
                           authorUid: uid,
-                          authorName: profile.data()?['name'] as String? ?? '이름 없음',
+                          authorName:
+                              profile.data()?['name'] as String? ?? '이름 없음',
                           authorRole: profile.data()?['role'] as String? ?? '',
                           text: text,
                         );
@@ -2015,7 +2098,10 @@ class _MomentsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final uid = currentUidOrNull();
     if (uid == null) {
-      return const Text('로그인 후 가족 이야기를 볼 수 있어요.', style: TextStyle(color: Colors.black54));
+      return const Text(
+        '로그인 후 가족 이야기를 볼 수 있어요.',
+        style: TextStyle(color: Colors.black54),
+      );
     }
     return FutureBuilder<String?>(
       future: FamilyService.instance.fetchMyFamilyId(uid),
@@ -2028,14 +2114,20 @@ class _MomentsSection extends StatelessWidget {
           );
         }
         if (familyId == null) {
-          return const Text('아직 가족에 소속되어 있지 않아요.', style: TextStyle(color: Colors.black54));
+          return const Text(
+            '아직 가족에 소속되어 있지 않아요.',
+            style: TextStyle(color: Colors.black54),
+          );
         }
         return StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
           stream: MomentService.instance.watchMoments(familyId),
           builder: (context, snapshot) {
             final docs = snapshot.data ?? const [];
             if (docs.isEmpty) {
-              return const Text('아직 기록된 가족 이야기가 없어요.', style: TextStyle(color: Colors.black54));
+              return const Text(
+                '아직 기록된 가족 이야기가 없어요.',
+                style: TextStyle(color: Colors.black54),
+              );
             }
             return Column(
               children: [
@@ -2047,8 +2139,13 @@ class _MomentsSection extends StatelessWidget {
                         data['likedBy'] as List? ?? const [],
                       );
                       final isLiked = likedBy.contains(uid);
-                      return StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
-                        stream: MomentService.instance.watchComments(familyId, doc.id),
+                      return StreamBuilder<
+                        List<QueryDocumentSnapshot<Map<String, dynamic>>>
+                      >(
+                        stream: MomentService.instance.watchComments(
+                          familyId,
+                          doc.id,
+                        ),
                         builder: (context, commentSnapshot) {
                           final commentDocs = commentSnapshot.data ?? const [];
                           return DiaryCard(
@@ -2060,6 +2157,17 @@ class _MomentsSection extends StatelessWidget {
                             likes: likedBy.length,
                             comments: commentDocs.length,
                             isLiked: isLiked,
+                            onEdit: data['authorUid'] == uid
+                                ? () => editMoment(
+                                    context,
+                                    familyId,
+                                    doc.id,
+                                    data,
+                                  )
+                                : null,
+                            onDelete: data['authorUid'] == uid
+                                ? () => deleteMoment(context, familyId, doc.id)
+                                : null,
                             onLike: () => MomentService.instance.toggleLike(
                               familyId: familyId,
                               momentId: doc.id,
@@ -2095,7 +2203,10 @@ class _FamilyMembersSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final uid = currentUidOrNull();
     if (uid == null) {
-      return const Text('로그인 후 가족 구성원을 볼 수 있어요.', style: TextStyle(color: Colors.black54));
+      return const Text(
+        '로그인 후 가족 구성원을 볼 수 있어요.',
+        style: TextStyle(color: Colors.black54),
+      );
     }
     return FutureBuilder<String?>(
       future: FamilyService.instance.fetchMyFamilyId(uid),
@@ -2108,14 +2219,20 @@ class _FamilyMembersSection extends StatelessWidget {
           );
         }
         if (familyId == null) {
-          return const Text('아직 가족에 소속되어 있지 않아요.', style: TextStyle(color: Colors.black54));
+          return const Text(
+            '아직 가족에 소속되어 있지 않아요.',
+            style: TextStyle(color: Colors.black54),
+          );
         }
         return StreamBuilder<List<Map<String, dynamic>>>(
           stream: FamilyService.instance.watchFamilyMembers(familyId),
           builder: (context, snapshot) {
             final members = snapshot.data ?? const [];
             if (members.isEmpty) {
-              return const Text('아직 참여한 가족 구성원이 없어요.', style: TextStyle(color: Colors.black54));
+              return const Text(
+                '아직 참여한 가족 구성원이 없어요.',
+                style: TextStyle(color: Colors.black54),
+              );
             }
             return Wrap(
               spacing: 10,
@@ -2153,6 +2270,8 @@ class DiaryCard extends StatelessWidget {
     this.isLiked = false,
     this.onLike,
     this.onComment,
+    this.onEdit,
+    this.onDelete,
     super.key,
   });
   final String name, mood, body;
@@ -2161,6 +2280,7 @@ class DiaryCard extends StatelessWidget {
   final bool isLiked;
   final VoidCallback? onLike;
   final VoidCallback? onComment;
+  final VoidCallback? onEdit, onDelete;
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
@@ -2207,77 +2327,28 @@ class DiaryCard extends StatelessWidget {
                 label: Text('$comments'),
               ),
               const Spacer(),
-              const Icon(Icons.more_horiz),
+              if (onEdit != null || onDelete != null)
+                PopupMenuButton<String>(
+                  tooltip: '기록 관리',
+                  icon: const Icon(Icons.more_horiz),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      onEdit?.call();
+                    } else {
+                      onDelete?.call();
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    if (onEdit != null)
+                      const PopupMenuItem(value: 'edit', child: Text('수정')),
+                    if (onDelete != null)
+                      const PopupMenuItem(value: 'delete', child: Text('삭제')),
+                  ],
+                ),
             ],
           ),
         ],
       ),
-    ),
-  );
-}
-
-class AiPage extends StatelessWidget {
-  const AiPage({super.key});
-  @override
-  Widget build(BuildContext context) => AppPage(
-    title: 'MIRA 인사이트',
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: ink,
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(CupertinoIcons.sparkles, color: Color(0xFFDCD8FF), size: 30),
-              SizedBox(height: 24),
-              Text(
-                '이번 주, 우리 가족은\n조금 더 가까워졌어요.',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 25,
-                  height: 1.3,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                '긍정적인 직접 상호작용이 18% 늘었어요.',
-                style: TextStyle(color: Colors.white60),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        const Section('살펴볼 신호', '최근 14일'),
-        const SizedBox(height: 10),
-        const Card(
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Insight('대화', '↑ 18%', '댓글과 답장이 늘었어요'),
-                Divider(height: 28),
-                Insight('함께한 활동', '→ 유지', '주말 산책을 이어가 보세요'),
-                Divider(height: 28),
-                Insight('아빠 ↔ 나', '↓ 8%', '짧은 안부 대화를 추천해요'),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 18),
-        const TextField(
-          decoration: InputDecoration(
-            hintText: 'MIRA에게 우리 가족에 대해 물어보세요',
-            suffixIcon: Icon(Icons.arrow_upward_rounded),
-          ),
-        ),
-      ],
     ),
   );
 }
@@ -2300,7 +2371,9 @@ class SettingsPage extends StatelessWidget {
                 '가족 관리',
                 '초대 코드 · 구성원',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const FamilyManagementScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const FamilyManagementScreen(),
+                  ),
                 ),
               ),
               setting(
@@ -2309,7 +2382,8 @@ class SettingsPage extends StatelessWidget {
                 '프로필 · 커스터마이징',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => PetSetup(onDone: () => Navigator.of(context).pop()),
+                    builder: (_) =>
+                        PetSetup(onDone: () => Navigator.of(context).pop()),
                   ),
                 ),
               ),
@@ -2318,7 +2392,9 @@ class SettingsPage extends StatelessWidget {
                 '알림',
                 '돌봄 · 댓글 · 일정',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationSettingsScreen(),
+                  ),
                 ),
               ),
               ListTile(
@@ -2352,16 +2428,18 @@ class SettingsPage extends StatelessWidget {
                 '화면 설정',
                 '글자 크기',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const DisplaySettingsScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const DisplaySettingsScreen(),
+                  ),
                 ),
               ),
               setting(
                 CupertinoIcons.question_circle,
                 '도움말',
                 '자주 묻는 질문',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const HelpScreen()),
-                ),
+                onTap: () => Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const HelpScreen())),
               ),
               setting(
                 CupertinoIcons.info_circle,
@@ -2380,7 +2458,10 @@ class SettingsPage extends StatelessWidget {
         const SizedBox(height: 14),
         Card(
           child: ListTile(
-            leading: const Icon(CupertinoIcons.square_arrow_right, color: Colors.red),
+            leading: const Icon(
+              CupertinoIcons.square_arrow_right,
+              color: Colors.red,
+            ),
             title: const Text('로그아웃', style: TextStyle(color: Colors.red)),
             onTap: () async {
               await AuthService.instance.signOut();
@@ -2430,7 +2511,9 @@ class _FamilyManagementScreenState extends State<FamilyManagementScreen> {
 
   Future<void> _load() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    final familyId = uid == null ? null : await FamilyService.instance.fetchMyFamilyId(uid);
+    final familyId = uid == null
+        ? null
+        : await FamilyService.instance.fetchMyFamilyId(uid);
     if (mounted) {
       setState(() {
         _familyId = familyId;
@@ -2482,9 +2565,9 @@ class _FamilyDetails extends StatelessWidget {
             icon: const Icon(CupertinoIcons.doc_on_doc),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: familyId));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('초대 코드를 복사했어요.')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('초대 코드를 복사했어요.')));
             },
           ),
         ),
@@ -2527,7 +2610,8 @@ class _JoinOrCreateFamilyForm extends StatefulWidget {
   const _JoinOrCreateFamilyForm({required this.onSuccess});
   final ValueChanged<String> onSuccess;
   @override
-  State<_JoinOrCreateFamilyForm> createState() => _JoinOrCreateFamilyFormState();
+  State<_JoinOrCreateFamilyForm> createState() =>
+      _JoinOrCreateFamilyFormState();
 }
 
 class _JoinOrCreateFamilyFormState extends State<_JoinOrCreateFamilyForm> {
@@ -2598,7 +2682,7 @@ class _JoinOrCreateFamilyFormState extends State<_JoinOrCreateFamilyForm> {
         children: familyRoles
             .map(
               (e) => ChoiceChip(
-                avatar: Text(_roleEmoji[e]!),
+                avatar: const Icon(Icons.person_rounded, size: 20),
                 label: Text(e),
                 selected: role == e,
                 onSelected: (_) => setState(() => role = e),
@@ -2629,7 +2713,10 @@ class _JoinOrCreateFamilyFormState extends State<_JoinOrCreateFamilyForm> {
       const SizedBox(height: 24),
       const Divider(),
       const SizedBox(height: 16),
-      const Text('이미 가족 코드가 있으신가요?', style: TextStyle(fontWeight: FontWeight.w700)),
+      const Text(
+        '이미 가족 코드가 있으신가요?',
+        style: TextStyle(fontWeight: FontWeight.w700),
+      ),
       const SizedBox(height: 10),
       TextField(
         controller: _inviteCodeController,
@@ -2654,10 +2741,12 @@ class _JoinOrCreateFamilyFormState extends State<_JoinOrCreateFamilyForm> {
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
   @override
-  State<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+  State<NotificationSettingsScreen> createState() =>
+      _NotificationSettingsScreenState();
 }
 
-class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
+class _NotificationSettingsScreenState
+    extends State<NotificationSettingsScreen> {
   static const _careKey = 'notif_care_v1';
   static const _commentKey = 'notif_comment_v1';
   static const _scheduleKey = 'notif_schedule_v1';
@@ -2769,7 +2858,10 @@ class HelpScreen extends StatelessWidget {
   static const _faq = [
     ('MIRA는 무엇인가요?', '가족이 함께 반려동물을 돌보며 서로의 하루를 나누는 앱이에요.'),
     ('가족 초대 코드는 어디서 확인하나요?', '설정 → 가족 관리에서 확인하고 공유할 수 있어요.'),
-    ('반려견 사진 분석은 어떻게 하나요?', '반려견 설정에서 사진을 올리고 "AI로 분석하기"를 누르면 품종과 색상을 자동으로 알려줘요.'),
+    (
+      '반려견 사진 분석은 어떻게 하나요?',
+      '반려견 설정에서 사진을 올리고 "AI로 분석하기"를 누르면 품종과 색상을 자동으로 알려줘요.',
+    ),
     ('내 기록은 가족에게 전부 공개되나요?', '가족 이야기에 직접 작성한 내용만 공개되고, 개인 정보는 안전하게 보호돼요.'),
   ];
 
@@ -2780,13 +2872,19 @@ class HelpScreen extends StatelessWidget {
       children: [
         for (final item in _faq)
           ExpansionTile(
-            title: Text(item.$1, style: const TextStyle(fontWeight: FontWeight.w700)),
+            title: Text(
+              item.$1,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(item.$2, style: const TextStyle(color: Colors.black54)),
+                  child: Text(
+                    item.$2,
+                    style: const TextStyle(color: Colors.black54),
+                  ),
                 ),
               ),
             ],
@@ -2809,7 +2907,10 @@ class _ProfileCard extends StatelessWidget {
       );
     }
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .snapshots(),
       builder: (context, snapshot) {
         final data = snapshot.data?.data();
         final name = data?['name'] as String? ?? '이름 없음';
@@ -2817,7 +2918,10 @@ class _ProfileCard extends StatelessWidget {
         return Card(
           child: ListTile(
             leading: AuthorAvatar(uid: uid, role: role),
-            title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
+            title: Text(
+              name,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             subtitle: Text(role != null ? '우리 가족 · $role' : '역할 미설정'),
             trailing: const Icon(CupertinoIcons.chevron_right),
             onTap: () => Navigator.of(context).push(
@@ -2839,6 +2943,7 @@ class ProfileEditScreen extends StatefulWidget {
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
   final _nameController = TextEditingController();
   final _birthdayController = TextEditingController();
+  final _interestsController = TextEditingController();
   DateTime? _birthday;
   bool _loading = true;
   bool _saving = false;
@@ -2858,6 +2963,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   void dispose() {
     _nameController.dispose();
     _birthdayController.dispose();
+    _interestsController.dispose();
     super.dispose();
   }
 
@@ -2867,10 +2973,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       if (mounted) setState(() => _loading = false);
       return;
     }
-    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
     final data = doc.data();
     _nameController.text = data?['name'] as String? ?? '';
     _existingPhotoBase64 = data?['photo'] as String?;
+    _interestsController.text = data?['interests'] as String? ?? '';
     final birthdayStr = data?['birthday'] as String?;
     if (birthdayStr != null) {
       final parsed = DateTime.tryParse(birthdayStr);
@@ -2959,8 +3069,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         if (_birthday != null)
           'birthday':
               '${_birthday!.year}-${_birthday!.month.toString().padLeft(2, '0')}-${_birthday!.day.toString().padLeft(2, '0')}',
+        'interests': _interestsController.text.trim(),
         if (_newPhotoBytes != null) 'photo': base64Encode(_newPhotoBytes!),
-        if (_removePhoto && _newPhotoBytes == null) 'photo': FieldValue.delete(),
+        if (_removePhoto && _newPhotoBytes == null)
+          'photo': FieldValue.delete(),
       }, SetOptions(merge: true));
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
@@ -2992,7 +3104,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                             : null,
                         child: _pickingPhoto
                             ? const CircularProgressIndicator(strokeWidth: 2)
-                            : (_newPhotoBytes == null && _existingPhotoBase64 == null)
+                            : (_newPhotoBytes == null &&
+                                  _existingPhotoBase64 == null)
                             ? const Icon(CupertinoIcons.camera, size: 28)
                             : null,
                       ),
@@ -3005,7 +3118,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           onPressed: _pickingPhoto ? null : _pickPhoto,
                           child: const Text('사진 바꾸기'),
                         ),
-                        if (_newPhotoBytes != null || _existingPhotoBase64 != null)
+                        if (_newPhotoBytes != null ||
+                            _existingPhotoBase64 != null)
                           TextButton(
                             onPressed: _clearPhoto,
                             child: const Text('사진 제거'),
@@ -3018,7 +3132,22 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: '이름', hintText: '이름을 입력하세요'),
+                decoration: const InputDecoration(
+                  labelText: '이름',
+                  hintText: '이름을 입력하세요',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _interestsController,
+                maxLength: 300,
+                minLines: 1,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: '좋아하는 것과 나의 성향',
+                  hintText: '예: 산책과 식물, 실용적인 선물, 조용한 시간을 좋아해요',
+                  helperText: '가족에게 공유되며 MIRA의 추천에 반영돼요.',
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -3040,7 +3169,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _saving ? null : _save,
-                  style: FilledButton.styleFrom(padding: const EdgeInsets.all(18)),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.all(18),
+                  ),
                   child: _saving
                       ? const SizedBox(
                           width: 20,
@@ -3062,64 +3193,73 @@ class QuestCard extends StatelessWidget {
     required this.detail,
     required this.progress,
     required this.color,
+    this.onTap,
     super.key,
   });
   final String icon, title, detail;
   final double progress;
   final Color color;
+  final VoidCallback? onTap;
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(19),
-    decoration: BoxDecoration(
-      color: color,
-      borderRadius: BorderRadius.circular(26),
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 52,
-          height: 52,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .7),
-            borderRadius: BorderRadius.circular(17),
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(26),
+    child: Container(
+      padding: const EdgeInsets.all(19),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(26),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: .7),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: Text(icon, style: const TextStyle(fontSize: 25)),
           ),
-          child: Text(icon, style: const TextStyle(fontSize: 25)),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -.3,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -.3,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                detail,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF77716A)),
-              ),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 5,
-                  backgroundColor: Colors.white.withValues(alpha: .65),
-                  color: ink,
+                const SizedBox(height: 5),
+                Text(
+                  detail,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF77716A),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 5,
+                    backgroundColor: Colors.white.withValues(alpha: .65),
+                    color: ink,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: 6),
-        const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-      ],
+          const SizedBox(width: 6),
+          const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+        ],
+      ),
     ),
   );
 }
@@ -3204,8 +3344,15 @@ class CareLine extends StatelessWidget {
 }
 
 class Metric extends StatelessWidget {
-  const Metric(this.icon, this.label, this.value, {super.key});
+  const Metric(
+    this.icon,
+    this.label,
+    this.value, {
+    this.description = '',
+    super.key,
+  });
   final String icon, label, value;
+  final String description;
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
@@ -3222,6 +3369,13 @@ class Metric extends StatelessWidget {
             value,
             style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w700),
           ),
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: const TextStyle(fontSize: 11, color: Colors.black54),
+            ),
+          ],
         ],
       ),
     ),
@@ -3234,14 +3388,14 @@ class Section extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Flexible(
+      Expanded(
         child: Text(
           title,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
       ),
-      const Spacer(),
+      const SizedBox(width: 12),
       Text(
         tail,
         overflow: TextOverflow.ellipsis,
@@ -3260,22 +3414,32 @@ class Insight extends StatelessWidget {
   final String label, value, desc;
   @override
   Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-            Text(
+            WordWrapText(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 5),
+            WordWrapText(
               desc,
               style: const TextStyle(fontSize: 12, color: Colors.black54),
             ),
           ],
         ),
       ),
-      Text(
-        value,
-        style: const TextStyle(color: violet, fontWeight: FontWeight.w700),
+      const SizedBox(width: 16),
+      SizedBox(
+        width: 64,
+        child: Text(
+          value,
+          textAlign: TextAlign.right,
+          style: const TextStyle(color: violet, fontWeight: FontWeight.w700),
+        ),
       ),
     ],
   );

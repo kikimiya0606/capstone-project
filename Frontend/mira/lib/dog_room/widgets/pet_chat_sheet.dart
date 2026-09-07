@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../services/ai_server_service.dart';
+import '../../services/pet_service.dart';
+import '../models/pet_personality.dart';
 
 class PetChatSheet extends StatefulWidget {
-  const PetChatSheet({super.key, required this.careContext});
+  const PetChatSheet({super.key, required this.careContext, this.familyId});
+  final String? familyId;
   final String Function() careContext;
   @override
   State<PetChatSheet> createState() => _PetChatSheetState();
@@ -23,7 +26,13 @@ class _PetChatSheetState extends State<PetChatSheet> {
       _error = null;
     });
     try {
+      final pet = widget.familyId == null
+          ? null
+          : await PetService.instance.fetchPet(widget.familyId!);
+      final personality = PetPersonality.fromJson(pet?['personalityProfile']);
       final reply = await AiServerService.instance.chatWithPet(
+        petName: pet?['name'] as String? ?? '',
+        personalityAnswers: personality?.answers ?? const [],
         message: message,
         careContext: widget.careContext(),
         history: _history
@@ -49,6 +58,8 @@ class _PetChatSheetState extends State<PetChatSheet> {
       });
     } on AiServerException catch (error) {
       if (mounted) setState(() => _error = error.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = '강아지 정보를 불러오지 못했어요. 다시 보내주세요.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

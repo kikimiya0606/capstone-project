@@ -83,7 +83,9 @@ class _MoodDiarySheetState extends State<_MoodDiarySheet> {
           .collection('users')
           .where('familyId', isEqualTo: widget.familyId)
           .get();
-      final others = memberDocs.docs.where((doc) => doc.id != widget.uid).toList();
+      final others = memberDocs.docs
+          .where((doc) => doc.id != widget.uid)
+          .toList();
       final familyRoles = others
           .map((doc) => doc.data()['role'] as String? ?? '가족')
           .toList();
@@ -140,12 +142,20 @@ class _MoodDiarySheetState extends State<_MoodDiarySheet> {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(22, 5, 22, MediaQuery.viewInsetsOf(context).bottom + 25),
+    padding: EdgeInsets.fromLTRB(
+      22,
+      5,
+      22,
+      MediaQuery.viewInsetsOf(context).bottom + 25,
+    ),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('오늘의 감정 한 줄 기록', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+        const Text(
+          '나의 오늘 감정',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 6),
         const Text(
           '나만 보는 기록이에요. 가족에게는 원문 대신 AI가 정리한 짧은 소식만 전해져요.',
@@ -169,11 +179,16 @@ class _MoodDiarySheetState extends State<_MoodDiarySheet> {
         TextField(
           controller: _textController,
           maxLines: 4,
-          decoration: const InputDecoration(hintText: '오늘 있었던 일과 기분을 편하게 적어보세요.'),
+          decoration: const InputDecoration(
+            hintText: '오늘 있었던 일과 기분을 편하게 적어보세요.',
+          ),
         ),
         if (_error != null) ...[
           const SizedBox(height: 10),
-          Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+          Text(
+            _error!,
+            style: const TextStyle(color: Colors.red, fontSize: 12),
+          ),
         ],
         const SizedBox(height: 16),
         SizedBox(
@@ -184,9 +199,12 @@ class _MoodDiarySheetState extends State<_MoodDiarySheet> {
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
-                : const Text('기록하기'),
+                : const Text('감정 기록하기'),
           ),
         ),
       ],
