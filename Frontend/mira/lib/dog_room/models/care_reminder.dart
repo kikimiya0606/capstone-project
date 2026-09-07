@@ -7,21 +7,31 @@ class CareReminder {
   final String action;
   final String date;
   String get key => '$date:$uid:$action';
-  String get message => '$role 기다리는 중! 오늘 $action 함께 해줄래?';
+  String get message {
+    final request = switch (careActions.indexOf(action)) {
+      0 => '배고파요',
+      1 => '씻고 싶어요',
+      2 => '같이 놀고 싶어요',
+      3 => '졸려요, 재워주세요',
+      _ => '함께 돌봐주세요',
+    };
+    return '$role $request!';
+  }
 }
 
 CareReminder? pendingCare(
   Map<String, dynamic> care,
   Map<String, dynamic> members,
-  DateTime now,
-) {
+  DateTime now, {
+  bool ignoreDeadlines = false,
+}) {
   if (care['_dateId'] != null && care['_dateId'] != careDate(now)) return null;
   final hour = now.toUtc().add(const Duration(hours: 9)).hour;
   // Don't wake the household overnight. Actions have separate due times.
-  if (hour < 8) return null;
+  if (!ignoreDeadlines && hour < 8) return null;
   const deadlines = [12, 18, 18, 21];
   for (var i = 0; i < careActions.length; i++) {
-    if (hour < deadlines[i]) continue;
+    if (!ignoreDeadlines && hour < deadlines[i]) continue;
     for (final uid in members.keys.toList()..sort()) {
       final record = care[uid];
       if (record is Map &&

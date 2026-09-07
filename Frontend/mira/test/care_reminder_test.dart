@@ -3,6 +3,44 @@ import 'package:mira/dog_room/models/care_reminder.dart';
 import 'package:mira/services/daily_care_service.dart';
 
 void main() {
+  test(
+    'preview skips time limits but keeps actual assignments and completion',
+    () {
+      final now = DateTime.parse('2026-09-08T10:00:00+09:00');
+      final care = <String, dynamic>{
+        '_dateId': careDate(now),
+        'a': {'action': careActions[2], 'completedAt': null},
+      };
+      expect(pendingCare(care, {'a': '몰라요'}, now), isNull);
+      expect(
+        pendingCare(care, {'a': '몰라요'}, now, ignoreDeadlines: true)?.message,
+        '몰라요 같이 놀고 싶어요!',
+      );
+      care['a']['completedAt'] = 'saved';
+      expect(
+        pendingCare(care, {'a': '몰라요'}, now, ignoreDeadlines: true),
+        isNull,
+      );
+    },
+  );
+  test('requests match the assigned member and care action', () {
+    expect(
+      CareReminder('a', '아빠', careActions[0], 'today').message,
+      '아빠 배고파요!',
+    );
+    expect(
+      CareReminder('b', '엄마', careActions[1], 'today').message,
+      '엄마 씻고 싶어요!',
+    );
+    expect(
+      CareReminder('c', '언니', careActions[2], 'today').message,
+      '언니 같이 놀고 싶어요!',
+    );
+    expect(
+      CareReminder('d', '오빠', careActions[3], 'today').message,
+      '오빠 졸려요, 재워주세요!',
+    );
+  });
   test('resuming on a later day does not announce stale assignments', () {
     expect(
       pendingCare(
