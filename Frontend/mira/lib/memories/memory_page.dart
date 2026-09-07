@@ -56,7 +56,10 @@ class _MemoryPageState extends State<MemoryPage> {
   }
 
   Future<void> _compose(String familyId, String uid) async {
-    final profile = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final profile = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
     if (!mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -81,7 +84,8 @@ class _MemoryPageState extends State<MemoryPage> {
   void _open(String familyId, String uid, String photoId) {
     Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => _PhotoDetailPage(familyId: familyId, uid: uid, photoId: photoId),
+        builder: (_) =>
+            _PhotoDetailPage(familyId: familyId, uid: uid, photoId: photoId),
       ),
     );
   }
@@ -111,7 +115,9 @@ class _MemoryPageState extends State<MemoryPage> {
           return const Center(child: Text('아직 가족에 소속되어 있지 않아요.'));
         }
         if (widget.active) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowNotice(uid));
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _maybeShowNotice(uid),
+          );
         }
         return StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
           stream: PhotoService.instance.watchPhotos(familyId),
@@ -148,7 +154,10 @@ class _MemoryPageState extends State<MemoryPage> {
                         const SizedBox(height: 12),
                         const Text(
                           '사진을 누르고 이야기와 마음을 남겨 보세요.',
-                          style: TextStyle(color: Color(0xFF68766D), height: 1.5),
+                          style: TextStyle(
+                            color: Color(0xFF68766D),
+                            height: 1.5,
+                          ),
                         ),
                         const SizedBox(height: 20),
                         Row(
@@ -161,12 +170,17 @@ class _MemoryPageState extends State<MemoryPage> {
                             const SizedBox(width: 8),
                             Text(
                               '${docs.length}장의 순간',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             const Spacer(),
                             const Text(
                               '우리 가족과 공유',
-                              style: TextStyle(fontSize: 12, color: Color(0xFF68766D)),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF68766D),
+                              ),
                             ),
                           ],
                         ),
@@ -205,11 +219,12 @@ class _MemoryPageState extends State<MemoryPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverGrid.builder(
                       itemCount: docs.length,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 4,
-                        crossAxisSpacing: 4,
-                        mainAxisSpacing: 4,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            crossAxisSpacing: 4,
+                            mainAxisSpacing: 4,
+                          ),
                       itemBuilder: (context, i) {
                         final doc = docs[i];
                         final data = doc.data();
@@ -217,15 +232,20 @@ class _MemoryPageState extends State<MemoryPage> {
                           data['likedBy'] as List? ?? const [],
                         );
                         final isLiked = likedBy.contains(uid);
-                        final role = data['authorRole'] as String? ?? '';
-                        return StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
-                          stream: PhotoService.instance.watchComments(familyId, doc.id),
+                        return StreamBuilder<
+                          List<QueryDocumentSnapshot<Map<String, dynamic>>>
+                        >(
+                          stream: PhotoService.instance.watchComments(
+                            familyId,
+                            doc.id,
+                          ),
                           builder: (context, commentSnapshot) {
-                            final commentCount = commentSnapshot.data?.length ?? 0;
+                            final commentCount =
+                                commentSnapshot.data?.length ?? 0;
                             return Semantics(
                               button: true,
                               label:
-                                  '$role 이 올린 사진, 좋아요 ${likedBy.length}, 댓글 $commentCount',
+                                  "${data['authorName'] ?? '이름 미설정'}님이 올린 사진, 좋아요 ${likedBy.length}, 댓글 $commentCount",
                               child: Material(
                                 clipBehavior: Clip.antiAlias,
                                 borderRadius: BorderRadius.circular(10),
@@ -234,11 +254,17 @@ class _MemoryPageState extends State<MemoryPage> {
                                   child: Stack(
                                     fit: StackFit.expand,
                                     children: [
-                                      _PhotoThumb(base64: data['photo'] as String? ?? ''),
+                                      _PhotoThumb(
+                                        base64: data['photo'] as String? ?? '',
+                                      ),
                                       Positioned(
                                         left: 4,
                                         top: 4,
-                                        child: _RoleTag(role: role),
+                                        child: _RoleTag(
+                                          role:
+                                              data['authorName'] as String? ??
+                                              '이름 미설정',
+                                        ),
                                       ),
                                       if (isLiked || commentCount > 0)
                                         Positioned(
@@ -247,13 +273,15 @@ class _MemoryPageState extends State<MemoryPage> {
                                           child: DecoratedBox(
                                             decoration: BoxDecoration(
                                               color: Colors.black54,
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                             ),
                                             child: Padding(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 5,
-                                                vertical: 3,
-                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 5,
+                                                    vertical: 3,
+                                                  ),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
@@ -266,7 +294,8 @@ class _MemoryPageState extends State<MemoryPage> {
                                                   if (commentCount > 0) ...[
                                                     const SizedBox(width: 3),
                                                     const Icon(
-                                                      CupertinoIcons.chat_bubble_fill,
+                                                      CupertinoIcons
+                                                          .chat_bubble_fill,
                                                       color: Colors.white,
                                                       size: 11,
                                                     ),
@@ -315,8 +344,12 @@ class _RoleTag extends StatelessWidget {
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
       child: Text(
-        '${roleEmoji[role] ?? '👤'} $role',
-        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+        role,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     ),
   );
@@ -502,7 +535,10 @@ class _ComposePageState extends State<_ComposePage> {
                     });
                     final navigator = Navigator.of(context);
                     try {
-                      await widget.onPublish(List.of(photos), caption.text.trim());
+                      await widget.onPublish(
+                        List.of(photos),
+                        caption.text.trim(),
+                      );
                       if (mounted) {
                         setState(() => publishing = false);
                         navigator.pop();
@@ -551,7 +587,10 @@ class _PhotoDetailPage extends StatelessWidget {
       ),
     );
     if (confirmed != true) return;
-    await PhotoService.instance.deletePhoto(familyId: familyId, photoId: photoId);
+    await PhotoService.instance.deletePhoto(
+      familyId: familyId,
+      photoId: photoId,
+    );
     if (context.mounted) Navigator.pop(context);
   }
 
@@ -581,9 +620,12 @@ class _PhotoDetailPage extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             ListTile(
-              leading: AuthorAvatar(uid: data['authorUid'] as String?, role: role),
+              leading: AuthorAvatar(
+                uid: data['authorUid'] as String?,
+                role: role,
+              ),
               title: Text(
-                '$role 이 올린 사진',
+                "${data['authorName'] ?? '이름 미설정'}님이 올린 사진",
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
@@ -653,7 +695,9 @@ class _PhotoDetailPage extends StatelessWidget {
                           currentlyLiked: isLiked,
                         ),
                         icon: Icon(
-                          isLiked ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+                          isLiked
+                              ? CupertinoIcons.heart_fill
+                              : CupertinoIcons.heart,
                           color: isLiked ? const Color(0xFFC36555) : _green,
                         ),
                         label: Text('좋아요 ${likedBy.length}'),
@@ -666,8 +710,13 @@ class _PhotoDetailPage extends StatelessWidget {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 12),
-                  StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
-                    stream: PhotoService.instance.watchComments(familyId, photoId),
+                  StreamBuilder<
+                    List<QueryDocumentSnapshot<Map<String, dynamic>>>
+                  >(
+                    stream: PhotoService.instance.watchComments(
+                      familyId,
+                      photoId,
+                    ),
                     builder: (context, commentSnapshot) {
                       final comments = commentSnapshot.data ?? const [];
                       if (comments.isEmpty) {
@@ -690,12 +739,19 @@ class _PhotoDetailPage extends StatelessWidget {
                                 radius: 17,
                               ),
                               title: Text(
-                                comment.data()['authorRole'] as String? ?? '역할 미설정',
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                comment.data()['authorName'] as String? ??
+                                    '이름 미설정',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               subtitle: Text(
                                 comment.data()['text'] as String? ?? '',
-                                style: const TextStyle(fontSize: 15, height: 1.5),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  height: 1.5,
+                                ),
                               ),
                             ),
                         ],
@@ -703,7 +759,11 @@ class _PhotoDetailPage extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 12),
-                  _CommentComposer(familyId: familyId, uid: uid, photoId: photoId),
+                  _CommentComposer(
+                    familyId: familyId,
+                    uid: uid,
+                    photoId: photoId,
+                  ),
                 ],
               ),
             ),
@@ -768,7 +828,10 @@ class _CommentComposerState extends State<_CommentComposer> {
         minLines: 1,
         maxLines: 4,
         enabled: !_sending,
-        decoration: const InputDecoration(hintText: '댓글을 남겨 주세요', labelText: '댓글'),
+        decoration: const InputDecoration(
+          hintText: '댓글을 남겨 주세요',
+          labelText: '댓글',
+        ),
       ),
       Align(
         alignment: Alignment.centerRight,

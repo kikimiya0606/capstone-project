@@ -6,8 +6,11 @@ class PetService {
 
   final _firestore = FirebaseFirestore.instance;
 
-  DocumentReference<Map<String, dynamic>> _doc(String familyId) =>
-      _firestore.collection('families').doc(familyId).collection('pet').doc('profile');
+  DocumentReference<Map<String, dynamic>> _doc(String familyId) => _firestore
+      .collection('families')
+      .doc(familyId)
+      .collection('pet')
+      .doc('profile');
 
   Future<Map<String, dynamic>?> fetchPet(String familyId) async {
     final snapshot = await _doc(familyId).get();
@@ -25,12 +28,14 @@ class PetService {
     required String breed,
     required String colorDescription,
     required String personality,
+    Map<String, dynamic>? personalityProfile,
   }) {
     return _doc(familyId).set({
       'name': name,
       'breed': breed,
       'colorDescription': colorDescription,
       'personality': personality,
+      'personalityProfile': ?personalityProfile,
       'updatedBy': updatedByUid,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));

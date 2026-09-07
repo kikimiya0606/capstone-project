@@ -137,7 +137,8 @@ class _FamilyDogRoomState extends State<FamilyDogRoom> {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => PetChatSheet(careContext: _careContext),
+    builder: (_) =>
+        PetChatSheet(careContext: _careContext, familyId: _familyId),
   );
 
   Future<void> _complete(CareAction action) async {

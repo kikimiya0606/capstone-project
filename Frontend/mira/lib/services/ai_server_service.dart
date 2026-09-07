@@ -45,6 +45,8 @@ class AiServerService {
     required String message,
     required String careContext,
     required List<Map<String, String>> history,
+    String petName = '',
+    List<int> personalityAnswers = const [],
   }) async {
     try {
       final response = await http
@@ -55,6 +57,8 @@ class AiServerService {
               'message': message,
               'care_context': careContext,
               'history': history,
+              'pet_name': petName,
+              'personality_answers': personalityAnswers,
             }),
           )
           .timeout(const Duration(seconds: 90));
@@ -85,6 +89,43 @@ class AiServerService {
   }
 
   /// 오늘의 감정 한 줄 기록을 kobert로 분석하고, 본인용/가족용 공감 메시지를 생성한다.
+  Future<String> chatInsight({
+    required String message,
+    required String familyContext,
+    required List<Map<String, String>> history,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_aiServerBaseUrl/insight-chat'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'message': message,
+              'family_context': familyContext,
+              'history': history,
+            }),
+          )
+          .timeout(const Duration(seconds: 130));
+      if (response.statusCode != 200) {
+        throw AiServerException(
+          '인사이트 대화가 연결되지 않았어요. 잠시 후 다시 시도해주세요. (${response.statusCode})',
+        );
+      }
+      final reply =
+          (jsonDecode(utf8.decode(response.bodyBytes)) as Map)['reply'];
+      if (reply is! String || reply.trim().isEmpty) {
+        throw const FormatException();
+      }
+      return reply;
+    } on AiServerException {
+      rethrow;
+    } on TimeoutException {
+      throw AiServerException('답변이 오래 걸려요. 잠시 후 다시 보내주세요.');
+    } catch (_) {
+      throw AiServerException('인사이트 서버에 연결하지 못했어요.');
+    }
+  }
+
   /// family_message는 일기 원문을 그대로 노출하지 않고 요약해서 전달하도록 서버에서 만들어준다.
   Future<MoodAnalysisResult> analyzeMood({
     required String moodText,

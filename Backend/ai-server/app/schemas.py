@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import Literal
+from pydantic import BaseModel, Field, field_validator
+from typing import Literal, Annotated
 
 
 class MoodAnalysisRequest(BaseModel):
@@ -26,14 +26,29 @@ class PetPhotoAnalysisResponse(BaseModel):
 
 class PetChatTurn(BaseModel):
     role: Literal['user', 'model']
-    text: str = Field(min_length=1, max_length=1000)
+    text: str = Field(min_length=1, max_length=4000)
 
 
 class PetChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=500, pattern=r'\S')
     care_context: str = Field(default='', max_length=2000)
     history: list[PetChatTurn] = Field(default_factory=list, max_length=12)
+    pet_name: str = Field(default='', max_length=80)
+    personality_answers: list[Annotated[int, Field(strict=True, ge=0, le=2)]] = Field(default_factory=list, max_length=4)
+
+    @field_validator('personality_answers')
+    @classmethod
+    def valid_answers(cls, answers):
+        if len(answers) not in (0, 4):
+            raise ValueError('Answer all four questions')
+        return answers
 
 
 class PetChatResponse(BaseModel):
     reply: str
+
+
+class InsightChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=1000, pattern=r'\S')
+    family_context: str = Field(default='', max_length=16000)
+    history: list[PetChatTurn] = Field(default_factory=list, max_length=12)

@@ -10,6 +10,8 @@ class Settings:
     def __init__(self) -> None:
         self.emotion_model_path = os.environ.get("EMOTION_MODEL_PATH", "klue/bert-base")
         self.gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        self.ollama_base_url = os.environ.get('OLLAMA_BASE_URL', 'http://127.0.0.1:11434').rstrip('/')
+        self.ollama_model = os.environ.get('OLLAMA_MODEL', 'qwen3:4b')
         self.gemini_model = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
         self.cors_origins = [
             origin.strip()

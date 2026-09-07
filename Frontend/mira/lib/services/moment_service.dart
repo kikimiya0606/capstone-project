@@ -9,7 +9,9 @@ class MomentService {
   CollectionReference<Map<String, dynamic>> _collection(String familyId) =>
       _firestore.collection('families').doc(familyId).collection('moments');
 
-  Stream<List<QueryDocumentSnapshot<Map<String, dynamic>>>> watchMoments(String familyId) {
+  Stream<List<QueryDocumentSnapshot<Map<String, dynamic>>>> watchMoments(
+    String familyId,
+  ) {
     return _collection(familyId)
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -47,6 +49,22 @@ class MomentService {
           : FieldValue.arrayUnion([uid]),
     });
   }
+
+  Future<void> updateMoment({
+    required String familyId,
+    required String momentId,
+    required String mood,
+    required String body,
+  }) => _collection(familyId).doc(momentId).update({
+    'mood': mood.trim(),
+    'body': body.trim(),
+    'updatedAt': FieldValue.serverTimestamp(),
+  });
+
+  Future<void> deleteMoment({
+    required String familyId,
+    required String momentId,
+  }) => _collection(familyId).doc(momentId).delete();
 
   Stream<List<QueryDocumentSnapshot<Map<String, dynamic>>>> watchComments(
     String familyId,
