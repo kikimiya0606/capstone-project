@@ -13,10 +13,10 @@ familyapp 화면들이 실제로 쓰는 필드 기준으로 설계함 (역할 4�
 | createdAt | timestamp | |
 
 ### `users/{userId}/settings/preferences`
-notificationEnabled, screenLock, vibration (bool)
+careEnabled, commentEnabled, scheduleEnabled (bool, 기본값 true) — 설정 화면의 알림 토글. 다른 가족 구성원의 클라이언트가 알림을 보내기 전에 이 값을 읽어서 꺼져 있으면 보내지 않는다(`NotificationService._isEnabled`). 그래서 이 문서는 본인 uid만 write 가능하지만 read는 signedIn이면 누구나 가능(`users/{userId}` 본문서와 동일한 공유 전제).
 
 ### `users/{userId}/notifications/{notificationId}`
-type(`schedule`/`todayQuestion`/`familyAnswer`/`moodAlert`), title, message, createdAt(timestamp), isRead(bool), relatedId(string?) — 원칙은 생성을 Cloud Functions에서만 하는 것. 단 `moodAlert`(감정 일기 분석 결과가 부정적일 때 가족에게 보내는 알림, `Frontend/mira/lib/services/notification_service.dart`)는 `createFamily`/`joinFamily`와 같은 이유로 Cloud Functions 배포 전까지 같은 가족 구성원 대상 클라이언트 직접 생성을 예외로 허용함 (`firestore.rules`의 필드/타입 제한 참고). Blaze 요금제로 전환하면 다른 알림 타입처럼 Cloud Function으로 옮길 것.
+type(`schedule`/`todayQuestion`/`familyAnswer`/`moodAlert`/`commentAlert`/`careAlert`), title, message, createdAt(timestamp), isRead(bool), relatedId(string?) — 원칙은 생성을 Cloud Functions에서만 하는 것. 단 `moodAlert`(감정 일기 분석 결과가 부정적일 때 가족에게 보내는 알림), `commentAlert`(가족 이야기/사진첩에 댓글이 달렸을 때), `careAlert`(오늘의 돌봄이 배정되거나 다른 가족이 완료했을 때) 세 가지는 `createFamily`/`joinFamily`와 같은 이유로 Cloud Functions 배포 전까지 같은 가족 구성원 대상 클라이언트 직접 생성을 예외로 허용함(`firestore.rules`의 필드/타입 제한 참고, `Frontend/mira/lib/services/notification_service.dart`). Blaze 요금제로 전환하면 다른 알림 타입처럼 Cloud Function으로 옮길 것.
 
 ## `families/{familyId}`
 문서 id 자체가 초대 코드(8자리, invite_screen의 "내 코드"와 동일한 것).

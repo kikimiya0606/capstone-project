@@ -45,7 +45,9 @@ class CharacterServerService {
               'seed': '$seed',
             },
           )
-          .timeout(const Duration(seconds: 90));
+          // Colab을 막 재시작한 직후 첫 요청은 모델을 새로 내려받고 GPU에 올리느라
+          // 오래 걸릴 수 있어서(수십 초~수 분) 넉넉하게 잡는다.
+          .timeout(const Duration(seconds: 180));
     } catch (_) {
       throw CharacterServerException(
         '캐릭터 생성 서버에 연결하지 못했어요. character-server가 실행 중인지 확인해주세요.',

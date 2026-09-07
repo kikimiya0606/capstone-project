@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -9,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/family_service.dart';
+import '../services/notification_service.dart';
 import '../services/photo_service.dart';
 import '../widgets/author_avatar.dart';
 
@@ -763,6 +765,7 @@ class _PhotoDetailPage extends StatelessWidget {
                     familyId: familyId,
                     uid: uid,
                     photoId: photoId,
+                    photoAuthorUid: data['authorUid'] as String?,
                   ),
                 ],
               ),
@@ -779,8 +782,10 @@ class _CommentComposer extends StatefulWidget {
     required this.familyId,
     required this.uid,
     required this.photoId,
+    required this.photoAuthorUid,
   });
   final String familyId, uid, photoId;
+  final String? photoAuthorUid;
   @override
   State<_CommentComposer> createState() => _CommentComposerState();
 }
@@ -804,14 +809,25 @@ class _CommentComposerState extends State<_CommentComposer> {
           .collection('users')
           .doc(widget.uid)
           .get();
+      final myRole = profile.data()?['role'] as String? ?? '';
       await PhotoService.instance.addComment(
         familyId: widget.familyId,
         photoId: widget.photoId,
         authorUid: widget.uid,
         authorName: profile.data()?['name'] as String? ?? '이름 없음',
-        authorRole: profile.data()?['role'] as String? ?? '',
+        authorRole: myRole,
         text: text,
       );
+      final photoAuthorUid = widget.photoAuthorUid;
+      if (photoAuthorUid != null && photoAuthorUid != widget.uid) {
+        unawaited(
+          NotificationService.instance.sendCommentAlert(
+            toUserId: photoAuthorUid,
+            fromRole: myRole,
+            relatedId: widget.photoId,
+          ),
+        );
+      }
       _controller.clear();
     } finally {
       if (mounted) setState(() => _sending = false);

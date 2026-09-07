@@ -86,34 +86,203 @@ def _get_pipeline():
 # 앱(PetSetup) 화면에서 자유 입력 또는 AI 사진 분석 결과(자유 문장)로 들어오기 때문에
 # 정확히 일치하지 않을 수 있어 _lookup()에서 부분 일치까지 시도한다.
 BREED_MAP = {
+    # 소형견
     "포메라니안": "pomeranian",
-    "골든리트리버": "golden retriever",
-    "시바견": "shiba inu",
-    "푸들": "poodle",
-    "토이푸들": "toy poodle",
-    "웰시코기": "corgi",
     "말티즈": "maltese",
+    "토이푸들": "toy poodle",
+    "미니어처푸들": "miniature poodle",
+    "푸들": "poodle",
     "비숑프리제": "bichon frise",
     "치와와": "chihuahua",
+    "요크셔테리어": "yorkshire terrier",
+    "시츄": "shih tzu",
+    "페키니즈": "pekingese",
+    "파피용": "papillon",
+    "미니어처핀셔": "miniature pinscher",
+    "미니핀": "miniature pinscher",
+    "미니어처슈나우저": "miniature schnauzer",
+    "재패니즈스피츠": "japanese spitz",
+    "스피츠": "japanese spitz",
+    "잭러셀테리어": "jack russell terrier",
+    "이탈리안그레이하운드": "italian greyhound",
+    "미니어처닥스훈트": "miniature dachshund",
     "닥스훈트": "dachshund",
+    "라사압소": "lhasa apso",
+    "티베탄테리어": "tibetan terrier",
+    "폭스테리어": "fox terrier",
+    "와이어폭스테리어": "wire fox terrier",
+    "웨스트하이랜드화이트테리어": "west highland white terrier",
+    "웨스티": "west highland white terrier",
+    "스코티시테리어": "scottish terrier",
+    "노퍽테리어": "norfolk terrier",
+    "노리치테리어": "norwich terrier",
+    "실키테리어": "silky terrier",
+    "캐발리에킹찰스스패니얼": "cavalier king charles spaniel",
+    "카발리에": "cavalier king charles spaniel",
+    "차이니즈크레스티드": "chinese crested dog",
+    "브뤼셀그리폰": "brussels griffon",
+    "아펜핀셔": "affenpinscher",
+    # 중형견
+    "웰시코기": "corgi",
+    "코카스파니엘": "cocker spaniel",
+    "비글": "beagle",
+    "프렌치불독": "french bulldog",
+    "퍼그": "pug",
+    "보스턴테리어": "boston terrier",
+    "불독": "english bulldog",
+    "시바견": "shiba inu",
+    "바셋하운드": "basset hound",
+    "잉글리시스프링거스패니얼": "english springer spaniel",
+    "브리타니스패니얼": "brittany spaniel",
+    "아메리칸에스키모독": "american eskimo dog",
+    "아메리칸불리": "american bully",
+    "스태퍼드셔불테리어": "staffordshire bull terrier",
+    "에어데일테리어": "airedale terrier",
+    "바센지": "basenji",
+    "샤페이": "shar pei",
+    "달마시안": "dalmatian",
+    "휘핏": "whippet",
+    "오스트레일리안캐틀독": "australian cattle dog",
+    "켈피": "australian kelpie",
+    # 인기 믹스/디자이너견
+    "라브라두들": "labradoodle",
+    "골든두들": "goldendoodle",
+    "코카푸": "cockapoo",
+    "말티푸": "maltipoo",
+    "요크이푸": "yorkiepoo",
+    # 한국 토종견
     "진돗개": "jindo dog",
+    "삽살개": "sapsaree dog",
+    "풍산개": "pungsan dog",
+    # 대형견/사역견
+    "골든리트리버": "golden retriever",
+    "래브라도리트리버": "labrador retriever",
+    "보더콜리": "border collie",
+    "오스트레일리안셰퍼드": "australian shepherd",
+    "셔틀랜드쉽독": "shetland sheepdog",
+    "저먼셰퍼드": "german shepherd",
+    "셰퍼드": "german shepherd",
+    "시베리안허스키": "siberian husky",
+    "허스키": "siberian husky",
+    "사모예드": "samoyed",
+    "알래스칸말라뮤트": "alaskan malamute",
+    "로트와일러": "rottweiler",
+    "도베르만": "doberman pinscher",
+    "차우차우": "chow chow",
+    "아키타견": "akita inu",
+    "아키타": "akita inu",
+    "그레이트데인": "great dane",
+    "세인트버나드": "saint bernard",
+    "버니즈마운틴독": "bernese mountain dog",
+    "그레이하운드": "greyhound",
+    "아프간하운드": "afghan hound",
+    "살루키": "saluki",
+    "로디지안리지백": "rhodesian ridgeback",
+    "복서": "boxer",
+    "불마스티프": "bullmastiff",
+    "마스티프": "mastiff",
+    "캐네인코르소": "cane corso",
+    "프레사카나리오": "presa canario",
+    "뉴펀들랜드": "newfoundland",
+    "그레이트피레니즈": "great pyrenees",
+    "아나톨리안셰퍼드": "anatolian shepherd",
+    "올드잉글리시쉽독": "old english sheepdog",
+    "브리아드": "briard",
+    "콜리": "collie",
+    "와이머라너": "weimaraner",
+    "포인터": "pointer",
+    "저먼포인터": "german shorthaired pointer",
+    "잉글리시세터": "english setter",
+    "아이리시세터": "irish setter",
+    "고든세터": "gordon setter",
+    # 믹스견 (품종 특징 없이 일반적인 강아지로 생성)
+    "믹스견": "mixed breed",
+    "믹스": "mixed breed",
+    "잡종": "mixed breed",
 }
 
 COLOR_MAP = {
+    # 흰색 계열
     "흰색": "white",
     "화이트": "white",
+    "하얀": "white",
+    "하양": "white",
+    "새하얀": "white",
+    "우유색": "white",
+    "우윳빛": "white",
+    "백구": "white",  # 진돗개 등에서 흰 털을 부르는 관용 표현
+    # 검정 계열
     "검정": "black",
+    "검은색": "black",
     "블랙": "black",
+    "까만": "black",
+    "까망": "black",
+    "새까만": "black",
+    "흑구": "black",
+    # 갈색 계열
     "갈색": "brown",
     "브라운": "brown",
+    "고동색": "brown",
+    "밤색": "brown",
+    "진갈색": "dark brown",
+    "다크브라운": "dark brown",
+    "초코색": "chocolate brown",
+    "초콜릿색": "chocolate brown",
+    "카라멜색": "caramel brown",
+    # 크림/베이지/아이보리 계열
     "크림": "cream beige",
+    "크림색": "cream beige",
     "베이지": "cream beige",
+    "아이보리": "ivory cream",
+    "옅은 갈색": "light tan",
+    "연갈색": "light tan",
+    "살구색": "apricot",
+    "애프리콧": "apricot",
+    # 회색/은색 계열
     "회색": "gray",
     "그레이": "gray",
+    "잿빛": "gray",
+    "은색": "silver gray",
+    "은회색": "silver gray",
+    "실버": "silver gray",
+    # 황금색/노란 계열
     "황금색": "golden",
+    "골든": "golden",
+    "금색": "golden",
+    "노란": "golden yellow",
+    "노랑": "golden yellow",
+    "황토색": "golden brown",
     "황갈색": "golden brown",
+    # 붉은/탄색 계열 (진돗개·시바견의 "황구" 같은 관용 표현 포함)
+    "빨간": "red",
+    "빨강": "red",
+    "붉은색": "red",
+    "적갈색": "reddish brown",
+    "탄색": "tan",
+    "황구": "reddish tan",
+    "주황색": "orange",
+    "오렌지색": "orange",
+    # 파란/청회색 계열
+    "블루그레이": "blue gray",
+    "청회색": "blue gray",
+    "스틸블루": "steel blue",
+    "스모크색": "smoke gray",
+    "진회색": "dark gray",
+    "연회색": "light gray",
+    "밝은갈색": "light brown",
+    # 두 가지 색 섞임 / 무늬
     "흑백": "black and white",
     "갈색+흰색": "brown and white",
+    "삼색": "tricolor",
+    "트라이컬러": "tricolor",
+    "점박이": "spotted",
+    "얼룩무늬": "spotted",
+    "얼룩": "spotted",
+    "브린들": "brindle",
+    "블루멀": "blue merle",
+    "멀": "merle",
+    "파티컬러": "parti-color",
+    "세이블": "sable",
 }
 
 # 앱의 PetSetup 화면에서 실제로 쓰는 성격 칩(활발함/애교쟁이/호기심/차분함)과
@@ -136,21 +305,36 @@ DEFAULT_PERSONALITY = "활발함"
 # baby_idle.png를 기준으로 시작해서 텍스트로 품종/색상/성격만 바꾸는 img2img 강도.
 # 0.68+ : 형태가 쉽게 깨짐 (색 이상해지거나 기형으로 나옴)
 # 0.5 이하: 원본(흰 포메라니안)에서 거의 안 벗어남
-# 0.6이 여러 견종으로 테스트했을 때 가장 안정적이었다.
+# 0.6이 여러 견종으로 테스트했을 때 가장 안정적이었다 - 다만 strength만으로는 색상/견종이
+# 아예 안 바뀔 때가 있어서(원본이 흰 포메라니안이라 그쪽으로 계속 끌림), GUIDANCE_SCALE로
+# 텍스트 프롬프트 반영 강도를 별도로 더 올려서 보완한다.
 IMG2IMG_STRENGTH = 0.6
+
+# 텍스트 프롬프트를 얼마나 강하게 따를지 (strength와는 별개 축). 기본값 7.5는 색상/견종이
+# 원본(흰 포메라니안) 쪽으로 계속 끌리는 경우가 있어서 더 올렸다 - strength를 올리는 것과
+# 달리 형태가 깨지는 부작용 없이 프롬프트 반영을 강화하는 쪽이라 우선 이걸로 시도한다.
+GUIDANCE_SCALE = 11.0
 
 
 def _lookup(value: str, table: dict, default_key: str) -> str:
     """정확히 일치하면 그대로, 아니면 테이블 키가 value에 포함되는지 부분 일치로 찾는다.
     (AI 사진 분석 결과는 "말티즈로 추정돼요" 같은 완전한 문장일 수 있어서)
     둘 다 실패하면 기본값으로 대체한다 — SD1.5는 한국어 프롬프트를 이해하지 못한다.
+
+    부분 일치는 긴 키부터 검사한다 — 예를 들어 "황갈색"이 "갈색"의 상위 문자열이라
+    "갈색"을 먼저 검사하면 "황갈색"을 입력해도 항상 "갈색"으로만 걸려버린다.
+
+    부분 일치 검사 전에 공백을 모두 제거한다 — "시베리안 허스키"처럼 외래어 견종명은
+    띄어쓰기가 사람마다 달라서, 공백을 그대로 두면 "시베리안허스키" 키가 있어도
+    못 찾는 경우가 많다.
     """
     value = (value or "").strip()
     if value in table:
         return table[value]
-    for key, prompt_value in table.items():
-        if key in value:
-            return prompt_value
+    compact_value = "".join(value.split())
+    for key in sorted(table, key=len, reverse=True):
+        if "".join(key.split()) in compact_value:
+            return table[key]
     return table[default_key]
 
 
@@ -165,8 +349,9 @@ def build_prompt(breed_kr: str, color_kr: str, personality_kr: str) -> tuple[str
     # txt2img로 단독으로 쓰면 결과가 매번 크게 달라진다).
     prompt = (
         f"full body chibi {color} {breed} puppy standing on four legs, "
-        "cute cartoon illustration, simple flat shading, "
-        "big round eyes, blush pink cheeks, smiling open mouth, fluffy fur, "
+        "kawaii mascot illustration, flat vector art, cel shading, clean bold black outline, "
+        "big round glossy black eyes with white sparkle highlight, blush pink cheeks, "
+        "smiling open mouth, soft round chubby body, fluffy fur, "
         f"{personality}, "
         "isolated on plain white background, no border, no frame, no shadow"
     )
@@ -175,6 +360,8 @@ def build_prompt(breed_kr: str, color_kr: str, personality_kr: str) -> tuple[str
         "colorful background, pattern background, sticker border, frame, "
         "cropped, close up, head only, face only, portrait, no body, "
         "3d render, photorealistic, realistic photo, photograph, detailed realistic fur, "
+        "sketch, pencil sketch, rough sketch, watercolor, painterly, gradient shading, "
+        "soft blurry outline, textured brush strokes, "
         "bear, teddy bear, cat, feline, whiskers, "
         "collar, tag, accessories, "
         "humanoid, ground, multiple animals, "
@@ -207,7 +394,7 @@ def generate():
         negative_prompt=negative_prompt,
         image=ref_image,
         strength=IMG2IMG_STRENGTH,
-        guidance_scale=7.5,
+        guidance_scale=GUIDANCE_SCALE,
         generator=generator,
     ).images[0]
 
