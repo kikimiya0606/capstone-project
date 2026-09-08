@@ -72,10 +72,7 @@ def _ask(prompt: str) -> str:
 
 
 def generate_self_message(user_text: str, user_role: str, mood_tag: str, ai_emotion: str) -> str:
-    prompt = f"""사용자 역할:
-{user_role}
-
-사용자가 직접 선택한 기분:
+    prompt = f"""사용자가 직접 선택한 기분:
 {mood_tag}
 
 사용자 한 줄 기록:
@@ -84,13 +81,15 @@ def generate_self_message(user_text: str, user_role: str, mood_tag: str, ai_emot
 AI 감정 분석 결과:
 {ai_emotion}
 
-사용자 본인에게 보여줄 팝업 메시지를 작성해줘.
+이 메시지는 글을 쓴 사람 본인에게 그 자리에서 바로 보여줄 팝업이야. 다른 가족이 보는 게
+아니라 작성자 본인에게 건네는 말이니, 지금 이 사람에게 직접 말을 거는 것처럼 써줘.
 
 조건
 - 반드시 1문장
 - 30자 이내
 - 사용자가 선택한 기분 "{mood_tag}"을 중심으로 공감
 - 따뜻한 공감 중심
+- 작성자를 "우리 딸/아들/엄마/아빠"처럼 가족 호칭이나 3인칭으로 부르지 말 것 (역할 언급 금지)
 - 조언 금지
 - 이모지 사용 금지"""
     return _ask(prompt)
