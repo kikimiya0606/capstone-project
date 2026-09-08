@@ -5,14 +5,14 @@ LABELS = ["불안", "분노", "상처", "슬픔", "당황", "기쁨"]
 
 
 class EmotionClassifier:
-    def __init__(self, model_path: str) -> None:
+    def __init__(self, model_path: str, hf_token: str | None = None) -> None:
         # torch/transformers는 여기서만 import해서 API 레이어와 테스트에 무거운 의존성이 안 붙게 함
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         self._torch = torch
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path, token=hf_token)
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_path, token=hf_token)
         self.model.eval()
 
     def predict(self, text: str) -> str:
@@ -31,5 +31,6 @@ _classifier: EmotionClassifier | None = None
 def get_classifier() -> EmotionClassifier:
     global _classifier
     if _classifier is None:
-        _classifier = EmotionClassifier(get_settings().emotion_model_path)
+        settings = get_settings()
+        _classifier = EmotionClassifier(settings.emotion_model_path, settings.hf_token)
     return _classifier

@@ -52,3 +52,8 @@ class InsightChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=1000, pattern=r'\S')
     family_context: str = Field(default='', max_length=16000)
     history: list[PetChatTurn] = Field(default_factory=list, max_length=12)
+
+
+class FamilySignalRequest(BaseModel):
+    family_context: str = Field(default='', max_length=16000)
+    interaction_summary: str = Field(default='', max_length=4000)

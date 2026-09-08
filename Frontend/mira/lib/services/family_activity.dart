@@ -12,6 +12,7 @@ DateTime? activityTime(dynamic value) =>
 
 class FamilyActivity {
   FamilyActivity({
+    required this.familyId,
     required this.members,
     required this.moments,
     required this.photos,
@@ -19,6 +20,7 @@ class FamilyActivity {
     required this.care,
     required this.now,
   });
+  final String familyId;
   final List<Map<String, dynamic>> members, moments, photos, moods, care;
   final DateTime now;
   bool inWeek(Map<String, dynamic> d) {
@@ -89,7 +91,7 @@ class FamilyActivity {
                 100 /
                 todayMoods.length)
             .round();
-  String contextText() {
+  String contextText({String? interactionSummary}) {
     String short(dynamic s, int max) {
       final text = '$s';
       return text.length > max ? text.substring(0, max) : text;
@@ -111,6 +113,10 @@ class FamilyActivity {
             '본인이 적은 소개/취향: ${short(m['bio'] ?? m['interests'] ?? '미등록', 300)}',
       ),
       '이번 주: 공유 글 ${weekMoments.length}, 사진 ${weekPhotos.length}, 좋아요 $likes, 돌봄 $careCount, 퀘스트 $questsDone/2',
+      if (interactionSummary != null && interactionSummary.trim().isNotEmpty) ...[
+        '최근 4주 가족 구성원 간 댓글/좋아요 교류 (많을수록 소통이 활발함):',
+        interactionSummary,
+      ],
       '최근 가족에게 공개한 글:',
       ...ordered
           .take(12)

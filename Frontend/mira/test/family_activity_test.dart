@@ -12,6 +12,7 @@ void main() {
     List<Map<String, dynamic>> moods = const [],
     DateTime? now,
   }) => FamilyActivity(
+    familyId: 'f1',
     members: [
       {'uid': 'a'},
       {'uid': 'b'},

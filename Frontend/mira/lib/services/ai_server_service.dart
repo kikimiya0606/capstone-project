@@ -126,6 +126,44 @@ class AiServerService {
     }
   }
 
+  /// 가족 구성원 간 댓글/좋아요 교류 데이터를 보고 소통이 뜸한 관계를 짚어주는
+  /// 한 문장을 생성한다. insight-chat(로컬 Ollama)과 달리 숫자 비교/형식 준수가
+  /// 중요해서 Gemini(gemini_service)를 쓰는 전용 엔드포인트를 따로 둔다.
+  Future<String> familySignal({
+    required String familyContext,
+    required String interactionSummary,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_aiServerBaseUrl/family-signal'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'family_context': familyContext,
+              'interaction_summary': interactionSummary,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode != 200) {
+        throw AiServerException(
+          '소통 신호를 불러오지 못했어요. 잠시 후 다시 시도해주세요. (${response.statusCode})',
+        );
+      }
+      final reply =
+          (jsonDecode(utf8.decode(response.bodyBytes)) as Map)['reply'];
+      if (reply is! String || reply.trim().isEmpty) {
+        throw const FormatException();
+      }
+      return reply;
+    } on AiServerException {
+      rethrow;
+    } on TimeoutException {
+      throw AiServerException('답변이 오래 걸려요. 잠시 후 다시 시도해주세요.');
+    } catch (_) {
+      throw AiServerException('소통 신호 서버에 연결하지 못했어요.');
+    }
+  }
+
   /// family_message는 일기 원문을 그대로 노출하지 않고 요약해서 전달하도록 서버에서 만들어준다.
   Future<MoodAnalysisResult> analyzeMood({
     required String moodText,

@@ -13,6 +13,7 @@ class _ActivityBuilderState extends State<_ActivityBuilder> {
   final _errors = <String>{};
   Timer? _timer;
   String? _message;
+  String? _familyId;
   @override
   void initState() {
     super.initState();
@@ -35,6 +36,7 @@ class _ActivityBuilderState extends State<_ActivityBuilder> {
         setState(() => _message = '가족에 참여하면 기록이 모여요.');
         return;
       }
+      _familyId = familyId;
       final db = FirebaseFirestore.instance;
       void watch(String name, Query<Map<String, dynamic>> query) {
         _subscriptions.add(
@@ -90,6 +92,7 @@ class _ActivityBuilderState extends State<_ActivityBuilder> {
     return widget.builder(
       context,
       FamilyActivity(
+        familyId: _familyId!,
         members: _data['members']!,
         moments: _data['moments']!,
         photos: _data['photos']!,
@@ -237,6 +240,39 @@ class _AiPageState extends State<AiPage> {
   final _history = <Map<String, String>>[];
   bool _busy = false;
   String? _error, _pending;
+  bool _signalRequested = false, _signalBusy = false;
+  String? _signal, _signalError, _interactionSummary;
+
+  /// 댓글/좋아요 교류를 집계해 소통이 뜸한 관계를 AI가 한 문장으로 짚어주는
+  /// "소통 신호" 카드. 인사이트 탭을 열 때 한 번만 계산해서, 매번 다시 만들지
+  /// 않고 이후 채팅 질문에도 같은 교류 데이터를 함께 넘겨준다.
+  Future<void> _loadSignal(FamilyActivity data) async {
+    if (data.members.length < 2) return;
+    setState(() => _signalBusy = true);
+    try {
+      final matrix = await FamilyInteractionService.instance.build(
+        familyId: data.familyId,
+        moments: data.moments,
+        photos: data.photos,
+        since: data.now.subtract(const Duration(days: 28)),
+      );
+      if (!mounted) return;
+      final summary = matrix.summaryText(data.members);
+      setState(() => _interactionSummary = summary);
+      final reply = await AiServerService.instance.familySignal(
+        familyContext: data.contextText(),
+        interactionSummary: summary,
+      );
+      if (!mounted) return;
+      setState(() => _signal = reply);
+    } on AiServerException catch (e) {
+      if (mounted) setState(() => _signalError = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _signalError = '소통 신호를 불러오지 못했어요.');
+    } finally {
+      if (mounted) setState(() => _signalBusy = false);
+    }
+  }
   void _scrollToEnd() => WidgetsBinding.instance.addPostFrameCallback((_) {
     if (_scroll.hasClients) {
       _scroll.animateTo(
@@ -259,7 +295,9 @@ class _AiPageState extends State<AiPage> {
     try {
       final reply = await AiServerService.instance.chatInsight(
         message: message,
-        familyContext: data.contextText(),
+        familyContext: data.contextText(
+          interactionSummary: _interactionSummary,
+        ),
         history: _history
             .skip((_history.length - 12).clamp(0, _history.length))
             .toList(),
@@ -291,7 +329,12 @@ class _AiPageState extends State<AiPage> {
 
   @override
   Widget build(BuildContext context) => _ActivityBuilder(
-    builder: (context, data) => Column(
+    builder: (context, data) {
+      if (!_signalRequested) {
+        _signalRequested = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) => _loadSignal(data));
+      }
+      return Column(
       children: [
         Expanded(
           child: AppPage(
@@ -364,6 +407,41 @@ class _AiPageState extends State<AiPage> {
                     ),
                   ),
                 ),
+                if (data.members.length >= 2) ...[
+                  const SizedBox(height: 20),
+                  const Section('AI 소통 신호', '최근 4주'),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            CupertinoIcons.heart_circle,
+                            color: violet,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _signalError != null
+                                ? Text(
+                                    _signalError!,
+                                    style: const TextStyle(
+                                      color: Colors.black54,
+                                    ),
+                                  )
+                                : Text(
+                                    _signal ??
+                                        (_signalBusy
+                                            ? '가족의 댓글·좋아요를 살펴보고 있어요…'
+                                            : '아직 살펴볼 만큼 교류가 쌓이지 않았어요.'),
+                                    style: const TextStyle(height: 1.5),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 const Text(
                   '가족이 공유한 이야기와 프로필을 참고해 대화해요.',
@@ -435,7 +513,8 @@ class _AiPageState extends State<AiPage> {
           ),
         ),
       ],
-    ),
+    );
+    },
   );
 }
 
