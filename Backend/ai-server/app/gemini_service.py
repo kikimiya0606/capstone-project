@@ -1,4 +1,7 @@
+import time
+
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
 
 from .config import get_settings
@@ -6,12 +9,30 @@ from .pet_personality import personality_instruction
 
 _client: genai.Client | None = None
 
+# 무료 티어 gemini-3.6-flash는 "high demand"로 인한 일시적 503/429가 종종 나서,
+# 매번 사용자에게 에러로 보여주지 말고 여기서 몇 번 재시도해본다.
+_RETRYABLE_CODES = (429, 500, 502, 503)
+_MAX_ATTEMPTS = 3
+
+
+def _generate_content(**kwargs):
+    last_error: genai_errors.APIError | None = None
+    for attempt in range(_MAX_ATTEMPTS):
+        try:
+            return get_client().models.generate_content(**kwargs)
+        except genai_errors.APIError as exc:
+            last_error = exc
+            if exc.code not in _RETRYABLE_CODES or attempt == _MAX_ATTEMPTS - 1:
+                raise
+            time.sleep(1.5 * (attempt + 1))
+    raise last_error  # pragma: no cover - 루프가 항상 return/raise로 끝남
+
 
 def generate_pet_reply(message: str, care_context: str, history: list, pet_name: str = '', personality_answers: list[int] | None = None) -> str:
     contents = [types.Content(role=turn.role, parts=[types.Part(text=turn.text)])
                 for turn in history]
     contents.append(types.Content(role='user', parts=[types.Part(text=message)]))
-    response = get_client().models.generate_content(
+    response = _generate_content(
         model=get_settings().gemini_model,
         contents=contents,
         config=types.GenerateContentConfig(
@@ -43,7 +64,7 @@ def get_client() -> genai.Client:
 
 def _ask(prompt: str) -> str:
     settings = get_settings()
-    response = get_client().models.generate_content(
+    response = _generate_content(
         model=settings.gemini_model,
         contents=prompt,
     )
@@ -94,12 +115,16 @@ AI 감정 분석 결과:
 - 한 문장
 - 40자 이내
 - "{user_role}" 역할을 자연스럽게 포함
-- 일기 원문 그대로 공개 금지
+- 일기 원문은 물론 무슨 일이 있었는지도 절대 언급하거나 암시하지 말 것 (일 관련, 학교 관련
+  등 상황을 추측해서 넣는 것도 금지)
 - 감정명 직접 언급 금지
-- 사용자가 어떤 상황인지 짧게 요약
-- 가족이 건넬 수 있는 자연스러운 말 또는 행동 제안
+- "오늘 {user_role}의 기분이 좋지 않아 보여요" 정도로 상태만 짧게 전달
+- 가족이 건넬 수 있는 자연스러운 말이나 행동 하나만 제안 (안부 인사, 포옹, 좋아하는 걸 같이
+  하기 등)
 - 상담사 말투 금지
-- 이모지 사용 금지"""
+- 이모지 사용 금지
+
+예시: "오늘 엄마가 조금 지쳐 보여요. 따뜻한 말 한마디 어떨까요?\""""
     return _ask(prompt)
 
 
@@ -113,7 +138,7 @@ def analyze_pet_photos(images: list[bytes]) -> dict[str, str]:
         prompt,
         *[types.Part.from_bytes(data=image, mime_type="image/jpeg") for image in images],
     ]
-    response = get_client().models.generate_content(model=settings.gemini_model, contents=contents)
+    response = _generate_content(model=settings.gemini_model, contents=contents)
     text = response.text.strip()
 
     breed = ""
