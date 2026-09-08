@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/dog_controller.dart';
 import '../models/dog_state.dart';
+import '../models/care_reminder.dart';
 import '../widgets/care_action_bar.dart';
 import '../widgets/dog_status_panel.dart';
 import '../widgets/feeding_dog.dart';
@@ -16,11 +17,15 @@ class DogRoomScreen extends StatefulWidget {
     required this.controller,
     this.onCareAction,
     this.careMessage,
+    this.careReminder,
+    this.petName = '강아지',
     this.onTalk,
   });
   final DogController controller;
   final ValueChanged<CareAction>? onCareAction;
   final String? careMessage;
+  final CareReminder? careReminder;
+  final String petName;
   final VoidCallback? onTalk;
 
   @override
@@ -43,10 +48,10 @@ class _DogRoomScreenState extends State<DogRoomScreen>
   bool _didPrecacheImages = false;
   bool _didSetInitialPosition = false;
   bool _isCareTransition = false;
-  bool _waitingForDad = false;
-  bool _greetingDad = false;
+  bool _waitingForCare = false;
+  bool _greetingMember = false;
   bool _pettingDog = false;
-  bool get _isTailWagging => _greetingDad || _pettingDog;
+  bool get _isTailWagging => _greetingMember || _pettingDog;
   Offset? _positionBeforeWaiting;
   CareAction? _activeAction;
   int _walkFrame = 0;
@@ -88,6 +93,23 @@ class _DogRoomScreenState extends State<DogRoomScreen>
       }
       setState(() => _walkFrame = (_walkFrame + 1) % _babyWalkFrames.length);
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant DogRoomScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.careReminder?.key != widget.careReminder?.key &&
+        _waitingForCare) {
+      _moveTimer?.cancel();
+      _tapController.reset();
+      _waitingForCare = false;
+      _greetingMember = false;
+      _isMoving = false;
+      _dogX = _positionBeforeWaiting?.dx ?? 80;
+      _dogY = _positionBeforeWaiting?.dy ?? 100;
+      _positionBeforeWaiting = null;
+      _moveTimer = Timer(const Duration(seconds: 1), _moveDog);
+    }
   }
 
   void _scheduleSpeechDismiss() {
@@ -141,7 +163,7 @@ class _DogRoomScreenState extends State<DogRoomScreen>
     if (!mounted ||
         _activeAction != null ||
         _isCareTransition ||
-        _waitingForDad) {
+        _waitingForCare) {
       return;
     }
     final size = _roomViewport == Size.zero
@@ -207,7 +229,7 @@ class _DogRoomScreenState extends State<DogRoomScreen>
     if (_isMoving ||
         _activeAction != null ||
         _isCareTransition ||
-        (_waitingForDad || _tapController.isAnimating)) {
+        (_waitingForCare || _tapController.isAnimating)) {
       return;
     }
     _moveTimer?.cancel();
@@ -225,7 +247,7 @@ class _DogRoomScreenState extends State<DogRoomScreen>
   Future<void> _performCare(CareAction action) async {
     if (_activeAction != null ||
         _isCareTransition ||
-        _waitingForDad ||
+        _waitingForCare ||
         _pettingDog) {
       return;
     }
@@ -309,8 +331,9 @@ class _DogRoomScreenState extends State<DogRoomScreen>
     }
   }
 
-  void _waitForDad() {
-    if (_waitingForDad ||
+  void _waitForCare() {
+    if (widget.careReminder == null) return;
+    if (_waitingForCare ||
         _activeAction != null ||
         _isCareTransition ||
         _pettingDog) {
@@ -321,10 +344,10 @@ class _DogRoomScreenState extends State<DogRoomScreen>
     _moveTimer?.cancel();
     _tapController.reset();
     setState(() {
-      _waitingForDad = true;
-      _speechVisible = false;
+      _waitingForCare = true;
+      _speechVisible = true;
       _specialSpeech = null;
-      _greetingDad = false;
+      _greetingMember = false;
       _isMoving = true;
       _moveDuration = const Duration(milliseconds: 900);
       final targetX = max(0.0, (_roomViewport.width - 140) / 2);
@@ -341,13 +364,13 @@ class _DogRoomScreenState extends State<DogRoomScreen>
     });
   }
 
-  Future<void> _greetDad() async {
-    if (!_waitingForDad || _greetingDad || _isMoving) return;
+  Future<void> _greetMember() async {
+    if (!_waitingForCare || _greetingMember || _isMoving) return;
     _showSpeech();
     _moveTimer?.cancel();
     setState(() {
       _isMoving = false;
-      _greetingDad = true;
+      _greetingMember = true;
       _isFacingRight = true;
       _walkFrame = 0;
     });
@@ -357,8 +380,8 @@ class _DogRoomScreenState extends State<DogRoomScreen>
     }
     if (!mounted) return;
     setState(() {
-      _waitingForDad = false;
-      _greetingDad = false;
+      _waitingForCare = false;
+      _greetingMember = false;
       _dogX = _positionBeforeWaiting?.dx ?? 80;
       _dogY = _positionBeforeWaiting?.dy ?? 100;
       _positionBeforeWaiting = null;
@@ -398,8 +421,8 @@ class _DogRoomScreenState extends State<DogRoomScreen>
         state.stage == GrowthStage.baby && _activeAction == CareAction.sleep;
     final isBabyWaiting =
         state.stage == GrowthStage.baby &&
-        _waitingForDad &&
-        !_greetingDad &&
+        _waitingForCare &&
+        !_greetingMember &&
         !_isMoving;
     final dogAsset = isBabyWaiting
         ? 'assets/dog/baby_wait.png'
@@ -414,39 +437,44 @@ class _DogRoomScreenState extends State<DogRoomScreen>
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed:
-                      _activeAction != null ||
-                          _isCareTransition ||
-                          _isTailWagging ||
-                          (_waitingForDad && _isMoving)
-                      ? null
-                      : _waitingForDad
-                      ? _greetDad
-                      : _waitForDad,
-                  icon: Icon(
-                    _waitingForDad
-                        ? Icons.favorite_outline
-                        : Icons.door_front_door_outlined,
-                    size: 16,
-                  ),
-                  label: Text(_waitingForDad ? '아빠 왔다!' : '아빠 기다리기'),
-                  style: OutlinedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    textStyle: const TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+            if (widget.careReminder != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed:
+                        _activeAction != null ||
+                            _isCareTransition ||
+                            _isTailWagging ||
+                            (_waitingForCare && _isMoving)
+                        ? null
+                        : _waitingForCare
+                        ? _greetMember
+                        : _waitForCare,
+                    icon: Icon(
+                      _waitingForCare
+                          ? Icons.favorite_outline
+                          : Icons.door_front_door_outlined,
+                      size: 16,
+                    ),
+                    label: Text(
+                      _waitingForCare
+                          ? '방으로 돌아가기'
+                          : '${widget.careReminder!.role} 기다리기',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      textStyle: const TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            DogStatusPanel(state: state),
+            DogStatusPanel(state: state, petName: widget.petName),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -455,19 +483,19 @@ class _DogRoomScreenState extends State<DogRoomScreen>
                     children: [
                       Positioned.fill(
                         child: Image.asset(
-                          _waitingForDad
+                          _waitingForCare
                               ? 'assets/room/entrance_background.png'
                               : 'assets/room/room_background.png',
                           key: ValueKey(
-                            _waitingForDad
+                            _waitingForCare
                                 ? 'entrance-background'
                                 : 'room-background',
                           ),
-                          fit: _waitingForDad ? BoxFit.fill : BoxFit.cover,
+                          fit: _waitingForCare ? BoxFit.fill : BoxFit.cover,
                           alignment: Alignment.center,
                         ),
                       ),
-                      if (!_waitingForDad)
+                      if (!_waitingForCare)
                         Positioned(
                           right: 12,
                           bottom: 68,
@@ -477,7 +505,7 @@ class _DogRoomScreenState extends State<DogRoomScreen>
                             fit: BoxFit.contain,
                           ),
                         ),
-                      if (!_waitingForDad)
+                      if (!_waitingForCare)
                         Positioned(
                           left: 18,
                           bottom: 18,
@@ -487,7 +515,7 @@ class _DogRoomScreenState extends State<DogRoomScreen>
                             fit: BoxFit.contain,
                           ),
                         ),
-                      if (!_waitingForDad)
+                      if (!_waitingForCare)
                         Positioned(
                           left: 8,
                           bottom: 86,
@@ -584,7 +612,7 @@ class _DogRoomScreenState extends State<DogRoomScreen>
                                     switchInCurve: Curves.easeOutBack,
                                     switchOutCurve: Curves.easeIn,
                                     transitionBuilder: (child, animation) =>
-                                        _waitingForDad
+                                        _waitingForCare
                                         ? FadeTransition(
                                             opacity: animation,
                                             child: child,
@@ -770,15 +798,12 @@ class _DogRoomScreenState extends State<DogRoomScreen>
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        widget.careMessage ??
-                                            (_waitingForDad
-                                                ? (_greetingDad
-                                                      ? '아빠 왔다! 보고 싶었어 ♥'
-                                                      : '아빠 언제 와? 여기서 기다릴래…')
-                                                : _specialSpeech ??
-                                                      widget
-                                                          .controller
-                                                          .message),
+                                        (_waitingForCare
+                                                ? widget.careReminder?.message
+                                                : null) ??
+                                            widget.careMessage ??
+                                            _specialSpeech ??
+                                            widget.controller.message,
                                         textAlign: TextAlign.center,
                                         style: const TextStyle(
                                           color: Color(0xFF665345),
@@ -832,7 +857,7 @@ class _DogRoomScreenState extends State<DogRoomScreen>
               enabled:
                   _activeAction == null &&
                   !_isCareTransition &&
-                  !_waitingForDad &&
+                  !_waitingForCare &&
                   !_pettingDog,
             ),
           ],

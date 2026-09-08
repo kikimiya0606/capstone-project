@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/daily_care_service.dart';
 import '../../services/family_service.dart';
+import '../../services/pet_service.dart';
 import '../controllers/dog_controller.dart';
 import '../models/care_reminder.dart';
 import '../widgets/pet_chat_sheet.dart';
@@ -21,6 +23,8 @@ class _FamilyDogRoomState extends State<FamilyDogRoom> {
   StreamSubscription<Map<String, dynamic>>? _careSubscription;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
   _familySubscription;
+  StreamSubscription<Map<String, dynamic>?>? _petSubscription;
+  String _petName = '강아지';
   Timer? _timer;
   String? _familyId;
   String? _error;
@@ -47,6 +51,20 @@ class _FamilyDogRoomState extends State<FamilyDogRoom> {
       final familyId = await FamilyService.instance.fetchMyFamilyId(uid);
       if (!mounted || familyId == null) return;
       _familyId = familyId;
+      _petSubscription = PetService.instance
+          .watchPet(familyId)
+          .listen(
+            (pet) {
+              if (!mounted) return;
+              final name = (pet?['name'] as String?)?.trim();
+              setState(
+                () => _petName = name == null || name.isEmpty ? '강아지' : name,
+              );
+            },
+            onError: (Object error) {
+              if (mounted) setState(() => _petName = '강아지');
+            },
+          );
       _familySubscription = FirebaseFirestore.instance
           .collection('families')
           .doc(familyId)
@@ -85,7 +103,13 @@ class _FamilyDogRoomState extends State<FamilyDogRoom> {
 
   void _refreshReminder() {
     if (!mounted) return;
-    final reminder = pendingCare(_care, _members, DateTime.now());
+    final reminder = pendingCare(
+      _care,
+      _members,
+      DateTime.now(),
+      ignoreDeadlines:
+          kDebugMode && const bool.fromEnvironment('CARE_REMINDER_PREVIEW'),
+    );
     setState(() => _reminder = reminder);
     if (reminder != null) _showReminder(reminder);
   }
@@ -168,6 +192,7 @@ class _FamilyDogRoomState extends State<FamilyDogRoom> {
   void dispose() {
     _timer?.cancel();
     _careSubscription?.cancel();
+    _petSubscription?.cancel();
     _familySubscription?.cancel();
     super.dispose();
   }
@@ -181,7 +206,8 @@ class _FamilyDogRoomState extends State<FamilyDogRoom> {
         child: DogRoomScreen(
           controller: widget.controller,
           onCareAction: _complete,
-          careMessage: _reminder?.message,
+          careReminder: _reminder,
+          petName: _petName,
           onTalk: _chat,
         ),
       ),
