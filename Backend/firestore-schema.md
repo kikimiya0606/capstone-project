@@ -1,6 +1,6 @@
 # Firestore 스키마
 
-familyapp 화면들이 실제로 쓰는 필드 기준으로 설계함 (역할 4종 고정: 아빠/엄마/아들/딸).
+familyapp 화면들이 실제로 쓰는 필드 기준으로 설계함 (역할 4종 고정: 아빠/엄마/아들/딸). 아빠/엄마는 가족당 한 명만 가능하고, 아들/딸은 여러 명 있어도 된다.
 
 ## `users/{userId}` (userId = Firebase Auth uid)
 | 필드 | 타입 | 비고 |
@@ -23,10 +23,10 @@ type(`schedule`/`todayQuestion`/`familyAnswer`/`moodAlert`/`commentAlert`/`careA
 
 | 필드 | 타입 | 비고 |
 |---|---|---|
-| members | map<uid, role> | 최대 4명, role은 가족당 1명씩만 |
+| members | map<uid, role> | 최대 10명, role 중 아빠/엄마는 가족당 1명씩만 (아들/딸은 중복 가능) |
 | createdAt | timestamp | |
 
-생성/참여는 클라이언트에서 Firestore 트랜잭션으로 직접 처리(`Frontend/mira/lib/services/family_service.dart`) — Cloud Functions 배포(Blaze 요금제) 없이 동작하도록 한 것. `firestore.rules`가 "본인 uid 하나로 새 문서 생성" / "기존 멤버는 그대로 두고 본인 uid만 추가"만 허용해서 최소한의 무결성(최대 4명, 역할 중복 금지)을 보장함. `Backend/functions/index.js`에 같은 로직의 Cloud Function 버전(`createFamily`/`joinFamily`)이 남아있는데, 지금은 사용하지 않고 나중에 Blaze로 전환하면 그쪽으로 옮길 수 있음.
+생성/참여는 클라이언트에서 Firestore 트랜잭션으로 직접 처리(`Frontend/mira/lib/services/family_service.dart`) — Cloud Functions 배포(Blaze 요금제) 없이 동작하도록 한 것. `firestore.rules`가 "본인 uid 하나로 새 문서 생성" / "기존 멤버는 그대로 두고 본인 uid만 추가"만 허용해서 최소한의 무결성(최대 10명, 아빠/엄마 역할 중복 금지)을 보장함. `Backend/functions/index.js`에 같은 로직의 Cloud Function 버전(`createFamily`/`joinFamily`)이 남아있는데, 지금은 사용하지 않고 나중에 Blaze로 전환하면 그쪽으로 옮길 수 있음.
 
 가족 문서 read는 `allow get`(단건 조회)만 로그인하면 허용하고 `allow list`는 막아뒀음 — 코드 생성 시 중복 확인, 참여 시 코드 유효성 확인 둘 다 "아직 멤버가 아닌 가족 문서"를 읽어야 해서, `isFamilyMember`로 read를 제한하면 코드를 알아도 조회 자체가 막히는 모순이 생김. 문서 id 자체가 8자리 랜덤 코드라 list 금지만으로도 코드를 모르면 검색해서 찾을 수 없음.
 

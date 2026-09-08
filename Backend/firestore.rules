@@ -16,6 +16,16 @@ service cloud.firestore {
       return ['아빠', '엄마', '아들', '딸'];
     }
 
+    // 아빠/엄마만 가족 내 유일해야 하고, 아들/딸은 여러 명일 수 있다.
+    function isUniqueRole(role) {
+      return role == '아빠' || role == '엄마';
+    }
+
+    // family_service.dart의 _maxFamilySize와 값을 맞춰야 한다.
+    function maxFamilySize() {
+      return 10;
+    }
+
     match /users/{userId} {
       // 이름/역할/사진은 가족 구성원끼리 공유 전제라 signedIn이면 read 허용.
       // 생일 등 더 민감한 필드가 늘어나면 public/private 문서 분리 고려.
@@ -65,9 +75,10 @@ service cloud.firestore {
         request.resource.data.members.diff(resource.data.members).removedKeys().size() == 0 &&
         request.resource.data.members.diff(resource.data.members).changedKeys().size() == 0 &&
         request.resource.data.members.diff(resource.data.members).addedKeys().hasOnly([request.auth.uid]) &&
-        request.resource.data.members.size() <= familyRoles().size() &&
+        request.resource.data.members.size() <= maxFamilySize() &&
         request.resource.data.members[request.auth.uid] in familyRoles() &&
-        !(request.resource.data.members[request.auth.uid] in resource.data.members.values());
+        (!isUniqueRole(request.resource.data.members[request.auth.uid]) ||
+          !(request.resource.data.members[request.auth.uid] in resource.data.members.values()));
 
       match /events/{eventId} {
         allow read, create, update, delete: if isFamilyMember(familyId);
