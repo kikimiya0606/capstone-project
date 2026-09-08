@@ -25,6 +25,7 @@ import 'services/ai_server_service.dart';
 import 'services/auth_service.dart';
 import 'services/character_server_service.dart';
 import 'services/daily_care_service.dart';
+import 'services/family_interaction.dart';
 import 'services/family_service.dart';
 import 'services/moment_service.dart';
 import 'services/notification_service.dart';

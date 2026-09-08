@@ -7,7 +7,7 @@ from .config import get_settings
 from .emotion_model import get_classifier
 from .schemas import MoodAnalysisRequest, MoodAnalysisResponse, PetPhotoAnalysisResponse
 from .schemas import PetChatRequest, PetChatResponse
-from .schemas import InsightChatRequest
+from .schemas import InsightChatRequest, FamilySignalRequest
 from . import ollama_service
 import httpx
 
@@ -53,6 +53,18 @@ async def insight_chat(req: InsightChatRequest) -> PetChatResponse:
         raise HTTPException(status_code=502, detail='인사이트 모델 설정을 확인해주세요.') from exc
     except (ValueError, httpx.RequestError) as exc:
         raise HTTPException(status_code=502, detail='인사이트 답변을 받지 못했어요.') from exc
+
+
+@app.post('/family-signal', response_model=PetChatResponse)
+def family_signal(req: FamilySignalRequest) -> PetChatResponse:
+    try:
+        reply = gemini_service.generate_family_signal(req.family_context, req.interaction_summary)
+    except genai_errors.APIError as exc:
+        code = 429 if exc.code == 429 else 502
+        raise HTTPException(status_code=code, detail='잠시 후 다시 시도해주세요.') from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail='답변을 받지 못했어요. 다시 시도해주세요.') from exc
+    return PetChatResponse(reply=reply)
 
 
 @app.post("/analyze-mood", response_model=MoodAnalysisResponse)

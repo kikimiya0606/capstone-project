@@ -127,6 +127,26 @@ AI 감정 분석 결과:
     return _ask(prompt)
 
 
+def generate_family_signal(family_context: str, interaction_summary: str) -> str:
+    prompt = f"""가족 프로필/최근 활동:
+{family_context}
+
+최근 4주 가족 구성원 간 댓글/좋아요 교류 횟수 (구성원 쌍마다 한 줄, 숫자가 낮을수록 그 둘 사이
+소통이 뜸하다는 뜻):
+{interaction_summary or '(교류 기록 없음)'}
+
+조건
+- 반드시 1문장, 60자 이내
+- 위 교류 횟수를 실제로 비교해서, 다른 쌍보다 뚜렷하게 낮은 쌍이 있으면 그 두 사람을 구체적으로
+  언급하며 다정하게 알려줘 (예: "요즘 아빠와 지우의 대화가 좀 뜸해 보여요, 오늘 안부 한마디 어때요?")
+- 특정 인물을 탓하거나 나무라는 말투 금지
+- 모든 쌍의 교류 횟수가 비슷하게 고르면, 특정 인물을 지목하지 말고 짧게 격려만 해줘
+- 교류 기록이 없으면 그냥 짧게 격려해줘
+- 이모지 사용 금지
+- 조언·설명 없이 문장 하나만 출력"""
+    return _ask(prompt)
+
+
 def analyze_pet_photos(images: list[bytes]) -> dict[str, str]:
     settings = get_settings()
     prompt = """강아지 사진을 보고 아래 형식으로만 한국어로 답해줘. 다른 설명은 하지 마.

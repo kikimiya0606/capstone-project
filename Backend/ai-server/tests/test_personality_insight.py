@@ -1,9 +1,10 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 from fastapi.testclient import TestClient
+from google.genai import errors as genai_errors
 from app.main import app
 from app.pet_personality import personality_instruction
-from app.gemini_service import generate_pet_reply
+from app.gemini_service import generate_family_signal, generate_pet_reply
 from app.ollama_service import chat
 from app.schemas import PetChatTurn
 import asyncio
@@ -51,6 +52,35 @@ def test_insight_passes_context_and_reports_unavailability(chat_mock):
         chat_mock.side_effect = exc
         assert client.post('/insight-chat', json=body).status_code == status
     assert client.post('/insight-chat', json={'message': ' '}).status_code == 422
+
+
+@patch('app.gemini_service.get_client')
+def test_family_signal_prompt_includes_interaction_data(get_client):
+    get_client.return_value.models.generate_content.return_value.text = '다들 잘 지내고 있어요.'
+    generate_family_signal('가족 구성원: 아빠, 지우', '아빠(아빠) - 지우(딸): 교류 0회')
+    prompt = get_client.return_value.models.generate_content.call_args.kwargs['contents']
+    assert '아빠(아빠) - 지우(딸): 교류 0회' in prompt
+    assert '가족 구성원: 아빠, 지우' in prompt
+
+
+@patch('app.main.gemini_service.generate_family_signal', return_value='아빠와 지우의 대화가 뜸해 보여요.')
+def test_family_signal_passes_context_and_interaction_summary(signal_mock):
+    body = {
+        'family_context': '가족 구성원: 아빠, 지우',
+        'interaction_summary': '아빠(아빠) - 지우(딸): 교류 0회',
+    }
+    r = client.post('/family-signal', json=body)
+    assert r.status_code == 200
+    assert r.json()['reply'] == '아빠와 지우의 대화가 뜸해 보여요.'
+    assert signal_mock.call_args.args == (body['family_context'], body['interaction_summary'])
+
+
+@patch('app.main.gemini_service.generate_family_signal')
+def test_family_signal_reports_provider_failure(signal_mock):
+    signal_mock.side_effect = genai_errors.APIError(429, {'error': {'message': 'x', 'status': 'RESOURCE_EXHAUSTED'}})
+    assert client.post('/family-signal', json={}).status_code == 429
+    signal_mock.side_effect = genai_errors.APIError(500, {'error': {'message': 'x', 'status': 'INTERNAL'}})
+    assert client.post('/family-signal', json={}).status_code == 502
 
 
 @patch('app.ollama_service.httpx.AsyncClient')
