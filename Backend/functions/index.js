@@ -7,6 +7,10 @@ const db = admin.firestore();
 Object.assign(exports, require('./care-functions'));
 
 const ROLES = ["아빠", "엄마", "아들", "딸"];
+// 아빠/엄마만 가족 내 유일해야 하고, 아들/딸은 여러 명일 수 있다.
+const UNIQUE_ROLES = ["아빠", "엄마"];
+// firestore.rules의 maxFamilySize(), family_service.dart의 _maxFamilySize와 값을 맞춰야 한다.
+const MAX_FAMILY_SIZE = 10;
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 헷갈리는 0/O, 1/I 제외
 
 function generateInviteCode() {
@@ -80,10 +84,10 @@ exports.joinFamily = onCall(async (request) => {
     if (members[uid]) {
       return { familyId: familyRef.id };
     }
-    if (Object.keys(members).length >= ROLES.length) {
+    if (Object.keys(members).length >= MAX_FAMILY_SIZE) {
       throw new HttpsError("failed-precondition", "가족 인원이 가득 찼습니다.");
     }
-    if (Object.values(members).includes(role)) {
+    if (UNIQUE_ROLES.includes(role) && Object.values(members).includes(role)) {
       throw new HttpsError("failed-precondition", `이미 "${role}" 역할을 사용 중입니다.`);
     }
 

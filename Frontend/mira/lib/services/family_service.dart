@@ -5,6 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 const familyRoles = ['아빠', '엄마', '아들', '딸'];
 
+/// 이 역할들만 가족 내에서 한 명으로 제한한다. 아들/딸은 여러 명이어도 된다.
+const _uniqueFamilyRoles = ['아빠', '엄마'];
+
+/// firestore.rules의 maxFamilySize()와 값을 맞춰야 한다.
+const _maxFamilySize = 10;
+
 class FamilyServiceException implements Exception {
   FamilyServiceException(this.message);
   final String message;
@@ -88,10 +94,10 @@ class FamilyService {
         snapshot.data()?['members'] as Map? ?? const {},
       );
       if (!members.containsKey(uid)) {
-        if (members.length >= familyRoles.length) {
+        if (members.length >= _maxFamilySize) {
           throw FamilyServiceException('가족 인원이 가득 찼어요.');
         }
-        if (members.values.contains(role)) {
+        if (_uniqueFamilyRoles.contains(role) && members.values.contains(role)) {
           throw FamilyServiceException('이미 "$role" 역할을 사용 중이에요.');
         }
         tx.update(familyRef, {'members.$uid': role});
